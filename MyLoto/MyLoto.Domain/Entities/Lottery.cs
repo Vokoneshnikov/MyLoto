@@ -13,8 +13,8 @@ public class Lottery : BaseEntity
     public int? K { get; set; }
     public int? N { get; set; }
     
-    public double PrizePoolPercentage { get; set; } // Например, 0.5 (50% от продаж идет в фонд)
-    public decimal AccumulatedJackpot { get; set; }
+    public double? PrizePoolPercentage { get; set; } // Например, 0.5 (50% от продаж идет в фонд)
+    public decimal? AccumulatedJackpot { get; set; }
     
     public bool IsPaused { get; set; }
     

@@ -1,0 +1,31 @@
+version: '3.8'
+
+services:
+  loto-db:
+    image: postgres:16-alpine
+    container_name: myloto_postgres_clean
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: password123
+      POSTGRES_DB: loto_db
+    ports:
+      - "5435:5432"
+    volumes:
+      - postgres_data_clean:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  # Визуальный интерфейс для базы данных
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: myloto_pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@loto.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "5050:80" # Будет доступен по адресу http://localhost:5050
+    depends_on:
+      - loto-db
+    restart: unless-stopped
+
+volumes:
+  postgres_data_clean:

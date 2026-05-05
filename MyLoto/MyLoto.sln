@@ -4,7 +4,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MyLoto.Domain", "MyLoto.Dom
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MyLoto.Application", "MyLoto.Application\MyLoto.Application.csproj", "{3304A9FD-C760-46EC-BB96-2EC693C4B096}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MyLoto.Infrasctructure", "MyLoto.Infrasctructure\MyLoto.Infrasctructure.csproj", "{6CA82F35-4B63-481E-979F-E4ACA1047742}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MyLoto.Infrastructure", "MyLoto.Infrastructure\MyLoto.Infrastructure.csproj", "{6CA82F35-4B63-481E-979F-E4ACA1047742}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MyLoto.WebAPI", "MyLoto.WebAPI\MyLoto.WebAPI.csproj", "{64197EFA-8161-4584-B31A-1F92465ED39B}"
 EndProject

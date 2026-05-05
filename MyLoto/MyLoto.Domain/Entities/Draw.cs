@@ -11,7 +11,7 @@ public class Draw : BaseEntity
     public DateTime ScheduledStartTime { get; set; }
     public DrawStatus Status { get; set; }
     
-    public List<int> WinningNumbers { get; set; } = new();
+    public ICollection<WinningNumber> WinningNumbers { get; set; } = new List<WinningNumber>();
     
     public decimal TotalSalesAmount { get; set; }
     

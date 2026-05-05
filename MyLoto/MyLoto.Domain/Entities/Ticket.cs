@@ -14,7 +14,7 @@ public class Ticket : BaseEntity
     public long? GifterId { get; set; }
     public User? Gifter { get; set; }
     
-    public List<int> SelectedNumbers { get; set; } = new();
+    public ICollection<TicketNumber> SelectedNumbers { get; set; } = new List<TicketNumber>();
     
     public bool IsChecked { get; set; }
     public decimal WinAmount { get; set; }

@@ -1,7 +1,10 @@
 ﻿namespace MyLoto.Domain.Entities;
 
-public class WinningNumber {
+public class WinningNumber
+{
     public long DrawId { get; set; }
     public int Number { get; set; }
-    public int Order { get; set; } // Тот самый порядок выпадения
+    public int Order { get; set; } 
+    
+    public Draw Draw { get; set; } = null!;
 }

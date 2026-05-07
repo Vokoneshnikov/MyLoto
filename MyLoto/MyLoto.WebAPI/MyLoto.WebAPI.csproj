@@ -4,16 +4,17 @@
         <TargetFramework>net10.0</TargetFramework>
         <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
+        <NoWarn>NU1903</NoWarn>
     </PropertyGroup>
 
     <ItemGroup>
-      <Folder Include="Endpoins\" />
-      <Folder Include="Extensions\" />
       <Folder Include="Hubs\" />
       <Folder Include="Middleware\" />
     </ItemGroup>
 
+    
     <ItemGroup>
+      <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.7" />
       <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.7" />
       <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.7">
         <PrivateAssets>all</PrivateAssets>
@@ -23,7 +24,7 @@
       <PackageReference Include="Serilog.Sinks.Console" Version="6.1.1" />
       <PackageReference Include="Swashbuckle.AspNetCore" Version="10.1.7" />
     </ItemGroup>
-
+    
     <ItemGroup>
       <ProjectReference Include="..\MyLoto.Infrastructure\MyLoto.Infrastructure.csproj" />
       <ProjectReference Include="..\MyLoto.Application\MyLoto.Application.csproj" />

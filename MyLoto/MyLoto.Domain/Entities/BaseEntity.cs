@@ -1,4 +1,4 @@
-﻿namespace MyLoto.Domain.Common;
+﻿namespace MyLoto.Domain;
 
 public abstract class BaseEntity
 {

@@ -1,5 +1,4 @@
-﻿using MyLoto.Domain.Common;
-using MyLoto.Domain.Enums;
+﻿using MyLoto.Domain.Enums;
 
 namespace MyLoto.Domain.Entities;
 
@@ -17,4 +16,27 @@ public class User : BaseEntity
     // Навигационные свойства
     public ICollection<Ticket> OwnedTickets { get; set; } = new List<Ticket>();
     public ICollection<Transaction> Transactions { get; set; } = new List<Transaction>();
+
+    public bool SpendMoney(decimal amount)
+    {
+        if (Balance < amount)
+            return false;
+
+        Balance -= amount;
+        return true;
+    }
+    
+    public void TopUpBalance(decimal amount)
+    {
+        if (amount <= 0) return;
+        Balance += amount;
+    }
+    
+    public void UpdateProfile(string name, string surname)
+    {
+        if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("Имя не может быть пустым");
+        
+        FirstName = name;
+        LastName = surname;
+    }
 }

@@ -1,5 +1,4 @@
-﻿using MyLoto.Domain.Common;
-
+﻿
 namespace MyLoto.Domain.Entities;
 
 public class PrizeTier : BaseEntity

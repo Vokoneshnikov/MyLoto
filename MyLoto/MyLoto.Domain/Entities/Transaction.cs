@@ -1,5 +1,4 @@
-﻿using MyLoto.Domain.Common;
-using MyLoto.Domain.Enums;
+﻿using MyLoto.Domain.Enums;
 
 namespace MyLoto.Domain.Entities;
 

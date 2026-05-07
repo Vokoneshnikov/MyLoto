@@ -1,6 +1,4 @@
-﻿using MyLoto.Domain.Common;
-
-namespace MyLoto.Domain.Entities;
+﻿namespace MyLoto.Domain.Entities;
 
 
 public class Ticket : BaseEntity

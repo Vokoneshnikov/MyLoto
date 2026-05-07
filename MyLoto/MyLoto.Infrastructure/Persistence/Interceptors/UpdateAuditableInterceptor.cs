@@ -1,6 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
-using MyLoto.Domain.Common;
+using MyLoto.Domain;
 
 namespace MyLoto.Infrastructure.Persistence.Interceptors;
 

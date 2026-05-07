@@ -10,13 +10,11 @@ public class DrawConfiguration : IEntityTypeConfiguration<Draw>
         builder.Property(d => d.Status).HasConversion<string>();
         builder.Property(d => d.TotalSalesAmount).HasPrecision(18, 2);
 
-        // 1НФ: Выигрышные числа в отдельной таблице
-        builder.OwnsMany(d => d.WinningNumbers, wn => 
-        {
-            wn.ToTable("DrawWinningNumbers");
-            wn.WithOwner().HasForeignKey("DrawId");
-            wn.HasKey("DrawId", "Number"); // Составной ключ
-        });
+        // Настраиваем связь 1:N с таблицей выигрышных чисел
+        builder.HasMany(d => d.WinningNumbers)
+            .WithOne(wn => wn.Draw)
+            .HasForeignKey(wn => wn.DrawId)
+            .OnDelete(DeleteBehavior.Cascade);
 
         builder.HasMany(d => d.Tickets)
             .WithOne(t => t.Draw)

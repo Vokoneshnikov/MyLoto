@@ -7,7 +7,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace MyLoto.Infrastructure.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialActual : Migration
+    public partial class InitialCreate : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -38,14 +38,17 @@ namespace MyLoto.Infrastructure.Migrations
                     Id = table.Column<long>(type: "bigint", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     Name = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
-                    Description = table.Column<string>(type: "text", nullable: false),
+                    Description = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: false),
                     TicketPrice = table.Column<decimal>(type: "numeric(18,2)", precision: 18, scale: 2, nullable: false),
-                    Type = table.Column<string>(type: "text", nullable: false),
-                    K = table.Column<int>(type: "integer", nullable: true),
-                    N = table.Column<int>(type: "integer", nullable: true),
-                    PrizePoolPercentage = table.Column<double>(type: "double precision", nullable: true),
-                    AccumulatedJackpot = table.Column<decimal>(type: "numeric(18,2)", precision: 18, scale: 2, nullable: true),
+                    Type = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
+                    AccumulatedJackpot = table.Column<decimal>(type: "numeric(18,2)", precision: 18, scale: 2, nullable: false),
                     IsPaused = table.Column<bool>(type: "boolean", nullable: false),
+                    Rows = table.Column<int>(type: "integer", nullable: true),
+                    Columns = table.Column<int>(type: "integer", nullable: true),
+                    MaxBallValue = table.Column<int>(type: "integer", nullable: true),
+                    JackpotThreshold = table.Column<int>(type: "integer", nullable: true),
+                    NumbersToChoose = table.Column<int>(type: "integer", nullable: true),
+                    MaxNumber = table.Column<int>(type: "integer", nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
                 },
@@ -107,8 +110,9 @@ namespace MyLoto.Infrastructure.Migrations
                     Id = table.Column<long>(type: "bigint", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     LotteryId = table.Column<long>(type: "bigint", nullable: false),
-                    MatchingCondition = table.Column<int>(type: "integer", nullable: false),
-                    RewardValue = table.Column<decimal>(type: "numeric(18,2)", precision: 18, scale: 2, nullable: false),
+                    RuleType = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
+                    ConditionValue = table.Column<int>(type: "integer", nullable: false),
+                    RewardMultiplier = table.Column<decimal>(type: "numeric(18,2)", precision: 18, scale: 2, nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
                 },
@@ -150,17 +154,40 @@ namespace MyLoto.Infrastructure.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "UserExtraInfo",
+                columns: table => new
+                {
+                    Id = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    UserId = table.Column<long>(type: "bigint", nullable: false),
+                    Address = table.Column<string>(type: "text", nullable: true),
+                    PhoneNumber = table.Column<string>(type: "text", nullable: true),
+                    DateOfBirth = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_UserExtraInfo", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_UserExtraInfo_Users_UserId",
+                        column: x => x.UserId,
+                        principalTable: "Users",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "DrawWinningNumbers",
                 columns: table => new
                 {
                     DrawId = table.Column<long>(type: "bigint", nullable: false),
+                    Order = table.Column<int>(type: "integer", nullable: false),
                     Number = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    Order = table.Column<int>(type: "integer", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_DrawWinningNumbers", x => new { x.DrawId, x.Number });
+                    table.PrimaryKey("PK_DrawWinningNumbers", x => new { x.DrawId, x.Order });
                     table.ForeignKey(
                         name: "FK_DrawWinningNumbers_Draws_DrawId",
                         column: x => x.DrawId,
@@ -212,12 +239,15 @@ namespace MyLoto.Infrastructure.Migrations
                 columns: table => new
                 {
                     TicketId = table.Column<long>(type: "bigint", nullable: false),
-                    Number = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn)
+                    Position = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Number = table.Column<int>(type: "integer", nullable: false),
+                    Row = table.Column<int>(type: "integer", nullable: true),
+                    Column = table.Column<int>(type: "integer", nullable: true)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_TicketNumbers", x => new { x.TicketId, x.Number });
+                    table.PrimaryKey("PK_TicketNumbers", x => new { x.TicketId, x.Position });
                     table.ForeignKey(
                         name: "FK_TicketNumbers_Tickets_TicketId",
                         column: x => x.TicketId,
@@ -235,6 +265,12 @@ namespace MyLoto.Infrastructure.Migrations
                 name: "IX_PrizeTiers_LotteryId",
                 table: "PrizeTiers",
                 column: "LotteryId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_TicketNumbers_TicketId_Number",
+                table: "TicketNumbers",
+                columns: new[] { "TicketId", "Number" },
+                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_Tickets_DrawId",
@@ -255,6 +291,12 @@ namespace MyLoto.Infrastructure.Migrations
                 name: "IX_Transactions_UserId",
                 table: "Transactions",
                 column: "UserId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_UserExtraInfo_UserId",
+                table: "UserExtraInfo",
+                column: "UserId",
+                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_Users_Email",
@@ -286,6 +328,9 @@ namespace MyLoto.Infrastructure.Migrations
 
             migrationBuilder.DropTable(
                 name: "Transactions");
+
+            migrationBuilder.DropTable(
+                name: "UserExtraInfo");
 
             migrationBuilder.DropTable(
                 name: "Tickets");

@@ -17,6 +17,9 @@ public class User : BaseEntity
     public ICollection<Ticket> OwnedTickets { get; set; } = new List<Ticket>();
     public ICollection<Transaction> Transactions { get; set; } = new List<Transaction>();
 
+    // Добавляем навигационное свойство для связи с UserExtraInfo
+    public UserExtraInfo ExtraInfo { get; set; } = null!;
+    
     public bool SpendMoney(decimal amount)
     {
         if (Balance < amount)

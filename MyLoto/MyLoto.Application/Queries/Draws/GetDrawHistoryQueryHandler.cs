@@ -1,7 +1,9 @@
 ﻿using AutoMapper;
+using FluentValidation;
 using MediatR;
 using MyLoto.Application.Abstractions.Repositories;
 using MyLoto.Application.Common;
+using MyLoto.Application.Queries.Draws;
 
 namespace MyLoto.Application.Queries.Draws;
 
@@ -10,24 +12,34 @@ public class GetDrawHistoryQueryHandler
 {
     private readonly IDrawRepository _drawRepository;
     private readonly IMapper _mapper;
+    private readonly IValidator<GetDrawHistoryQuery> _validator; // Добавлен валидатор
 
-    public GetDrawHistoryQueryHandler(IDrawRepository drawRepository, IMapper mapper)
+    public GetDrawHistoryQueryHandler(IDrawRepository drawRepository, IMapper mapper, IValidator<GetDrawHistoryQuery> validator)
     {
         _drawRepository = drawRepository;
         _mapper = mapper;
+        _validator = validator;
     }
 
     public async Task<Result<IReadOnlyList<DrawHistoryDto>>> Handle(
         GetDrawHistoryQuery request, 
         CancellationToken cancellationToken)
     {
-        // 1. Получаем завершенные тиражи для конкретной лотереи
+        // Валидация запроса
+        var validationResult = await _validator.ValidateAsync(request, cancellationToken);
+        if (!validationResult.IsValid)
+        {
+            var firstError = validationResult.Errors.First();
+            return Result<IReadOnlyList<DrawHistoryDto>>.Failure(new Error(firstError.PropertyName, firstError.ErrorMessage));
+        }
+
+        // Получаем завершенные тиражи для конкретной лотереи
         var draws = await _drawRepository.GetDrawHistoryAsync(request.LotteryId, cancellationToken);
 
-        // 2. Маппим в список DTO
+        // Маппим в список DTO
         var dtos = _mapper.Map<IReadOnlyList<DrawHistoryDto>>(draws);
 
-        // 3. Возвращаем результат
+        // Возвращаем результат
         return Result<IReadOnlyList<DrawHistoryDto>>.Success(dtos);
     }
 }

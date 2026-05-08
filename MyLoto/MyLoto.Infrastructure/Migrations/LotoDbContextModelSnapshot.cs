@@ -102,7 +102,7 @@ namespace MyLoto.Infrastructure.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
-                    b.Property<decimal?>("AccumulatedJackpot")
+                    b.Property<decimal>("AccumulatedJackpot")
                         .HasPrecision(18, 2)
                         .HasColumnType("numeric(18,2)");
 
@@ -111,24 +111,16 @@ namespace MyLoto.Infrastructure.Migrations
 
                     b.Property<string>("Description")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
 
                     b.Property<bool>("IsPaused")
                         .HasColumnType("boolean");
-
-                    b.Property<int?>("K")
-                        .HasColumnType("integer");
-
-                    b.Property<int?>("N")
-                        .HasColumnType("integer");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
-
-                    b.Property<double?>("PrizePoolPercentage")
-                        .HasColumnType("double precision");
 
                     b.Property<decimal>("TicketPrice")
                         .HasPrecision(18, 2)
@@ -136,7 +128,8 @@ namespace MyLoto.Infrastructure.Migrations
 
                     b.Property<string>("Type")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -144,6 +137,10 @@ namespace MyLoto.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Lotteries");
+
+                    b.HasDiscriminator<string>("Type");
+
+                    b.UseTphMappingStrategy();
                 });
 
             modelBuilder.Entity("MyLoto.Domain.Entities.PrizeTier", b =>
@@ -154,18 +151,23 @@ namespace MyLoto.Infrastructure.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
+                    b.Property<int>("ConditionValue")
+                        .HasColumnType("integer");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<long>("LotteryId")
                         .HasColumnType("bigint");
 
-                    b.Property<int>("MatchingCondition")
-                        .HasColumnType("integer");
-
-                    b.Property<decimal>("RewardValue")
+                    b.Property<decimal>("RewardMultiplier")
                         .HasPrecision(18, 2)
                         .HasColumnType("numeric(18,2)");
+
+                    b.Property<string>("RuleType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -324,6 +326,91 @@ namespace MyLoto.Infrastructure.Migrations
                     b.ToTable("Users");
                 });
 
+            modelBuilder.Entity("MyLoto.Domain.Entities.UserExtraInfo", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("Address")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("DateOfBirth")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("PhoneNumber")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long>("UserId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId")
+                        .IsUnique();
+
+                    b.ToTable("UserExtraInfo");
+                });
+
+            modelBuilder.Entity("MyLoto.Domain.Entities.WinningNumber", b =>
+                {
+                    b.Property<long>("DrawId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("DrawId");
+
+                    b.Property<int>("Order")
+                        .HasColumnType("integer")
+                        .HasColumnName("Order");
+
+                    b.Property<int>("Number")
+                        .HasColumnType("integer")
+                        .HasColumnName("Number");
+
+                    b.HasKey("DrawId", "Order");
+
+                    b.ToTable("DrawWinningNumbers", (string)null);
+                });
+
+            modelBuilder.Entity("MyLoto.Domain.Entities.BingoLottery", b =>
+                {
+                    b.HasBaseType("MyLoto.Domain.Entities.Lottery");
+
+                    b.Property<int>("Columns")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("JackpotThreshold")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("MaxBallValue")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Rows")
+                        .HasColumnType("integer");
+
+                    b.HasDiscriminator().HasValue("Bingo");
+                });
+
+            modelBuilder.Entity("MyLoto.Domain.Entities.KOutOfNLottery", b =>
+                {
+                    b.HasBaseType("MyLoto.Domain.Entities.Lottery");
+
+                    b.Property<int>("MaxNumber")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("NumbersToChoose")
+                        .HasColumnType("integer");
+
+                    b.HasDiscriminator().HasValue("K_Out_Of_N");
+                });
+
             modelBuilder.Entity("MyLoto.Domain.Entities.Draw", b =>
                 {
                     b.HasOne("MyLoto.Domain.Entities.Lottery", "Lottery")
@@ -332,31 +419,7 @@ namespace MyLoto.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.OwnsMany("MyLoto.Domain.Entities.WinningNumber", "WinningNumbers", b1 =>
-                        {
-                            b1.Property<long>("DrawId")
-                                .HasColumnType("bigint");
-
-                            b1.Property<int>("Number")
-                                .ValueGeneratedOnAdd()
-                                .HasColumnType("integer");
-
-                            NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b1.Property<int>("Number"));
-
-                            b1.Property<int>("Order")
-                                .HasColumnType("integer");
-
-                            b1.HasKey("DrawId", "Number");
-
-                            b1.ToTable("DrawWinningNumbers", (string)null);
-
-                            b1.WithOwner()
-                                .HasForeignKey("DrawId");
-                        });
-
                     b.Navigation("Lottery");
-
-                    b.Navigation("WinningNumbers");
                 });
 
             modelBuilder.Entity("MyLoto.Domain.Entities.PrizeTier", b =>
@@ -394,13 +457,25 @@ namespace MyLoto.Infrastructure.Migrations
                             b1.Property<long>("TicketId")
                                 .HasColumnType("bigint");
 
-                            b1.Property<int>("Number")
+                            b1.Property<int>("Position")
                                 .ValueGeneratedOnAdd()
                                 .HasColumnType("integer");
 
-                            NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b1.Property<int>("Number"));
+                            NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b1.Property<int>("Position"));
 
-                            b1.HasKey("TicketId", "Number");
+                            b1.Property<int?>("Column")
+                                .HasColumnType("integer");
+
+                            b1.Property<int>("Number")
+                                .HasColumnType("integer");
+
+                            b1.Property<int?>("Row")
+                                .HasColumnType("integer");
+
+                            b1.HasKey("TicketId", "Position");
+
+                            b1.HasIndex("TicketId", "Number")
+                                .IsUnique();
 
                             b1.ToTable("TicketNumbers", (string)null);
 
@@ -428,9 +503,33 @@ namespace MyLoto.Infrastructure.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("MyLoto.Domain.Entities.UserExtraInfo", b =>
+                {
+                    b.HasOne("MyLoto.Domain.Entities.User", "User")
+                        .WithOne("ExtraInfo")
+                        .HasForeignKey("MyLoto.Domain.Entities.UserExtraInfo", "UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("MyLoto.Domain.Entities.WinningNumber", b =>
+                {
+                    b.HasOne("MyLoto.Domain.Entities.Draw", "Draw")
+                        .WithMany("WinningNumbers")
+                        .HasForeignKey("DrawId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Draw");
+                });
+
             modelBuilder.Entity("MyLoto.Domain.Entities.Draw", b =>
                 {
                     b.Navigation("Tickets");
+
+                    b.Navigation("WinningNumbers");
                 });
 
             modelBuilder.Entity("MyLoto.Domain.Entities.Lottery", b =>
@@ -442,6 +541,9 @@ namespace MyLoto.Infrastructure.Migrations
 
             modelBuilder.Entity("MyLoto.Domain.Entities.User", b =>
                 {
+                    b.Navigation("ExtraInfo")
+                        .IsRequired();
+
                     b.Navigation("OwnedTickets");
 
                     b.Navigation("Transactions");

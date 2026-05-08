@@ -38,7 +38,7 @@ public static class UserEndpoints
         
         group.MapPut("/{userId:long}/profile", async (long userId, UpdateProfileDto dto, ISender mediator) =>
         {
-            var command = new UpdateProfileInfoCommand(userId, dto.Name, dto.Surname);
+            var command = new UpdateProfileInfoCommand(userId, dto.Name, dto.Surname, dto.Address);
             var result = await mediator.Send(command);
             return result.ToProcessResult();
         });

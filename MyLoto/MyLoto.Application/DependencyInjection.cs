@@ -1,22 +1,27 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using System.Reflection;
+using FluentValidation;
 
-namespace MyLoto.Application;
-
-public static class DependencyInjection
+namespace MyLoto.Application
 {
-    public static IServiceCollection AddApplication(this IServiceCollection services)
+    public static class DependencyInjection
     {
-        // Получаем текущую сборку (проект MyLoto.Application)
-        var assembly = typeof(DependencyInjection).Assembly;
+        public static IServiceCollection AddApplication(this IServiceCollection services)
+        {
+            // Получаем текущую сборку (проект MyLoto.Application)
+            var assembly = typeof(DependencyInjection).Assembly;
 
-        // 1. Регистрируем AutoMapper (он сам найдет MappingProfile)
-        services.AddAutoMapper(assembly);
+            // 1. Регистрируем AutoMapper (он сам найдет MappingProfile)
+            services.AddAutoMapper(assembly);
 
-        // 2. Регистрируем MediatR (он сам найдет все классы IRequestHandler)
-        services.AddMediatR(configuration =>
-            configuration.RegisterServicesFromAssembly(assembly));
+            // 2. Регистрируем MediatR (он сам найдет все классы IRequestHandler)
+            services.AddMediatR(configuration =>
+                configuration.RegisterServicesFromAssembly(assembly));
 
-        return services;
+            // 3. Регистрируем все валидаторы из директории Validators
+            services.AddValidatorsFromAssembly(assembly);
+
+            return services;
+        }
     }
 }

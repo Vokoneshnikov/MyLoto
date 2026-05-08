@@ -12,7 +12,34 @@ public class MappingProfile : Profile
 {
     public MappingProfile()
     {
-        CreateMap<Lottery, LotteryDto>();
+        CreateMap<Lottery, LotteryDto>()
+            .Include<KOutOfNLottery, LotteryDto>()
+            .Include<BingoLottery, LotteryDto>()
+            .ForMember(dest => dest.Type, opt => opt.MapFrom(src => src.Type.ToString()))
+            .ForMember(dest => dest.NumbersToChoose, opt => opt.Ignore())
+            .ForMember(dest => dest.MaxNumber, opt => opt.Ignore())
+            .ForMember(dest => dest.Rows, opt => opt.Ignore())
+            .ForMember(dest => dest.Columns, opt => opt.Ignore())
+            .ForMember(dest => dest.MaxBallValue, opt => opt.Ignore())
+            .ForMember(dest => dest.JackpotThreshold, opt => opt.Ignore());
+
+        CreateMap<KOutOfNLottery, LotteryDto>()
+            .ForMember(dest => dest.Type, opt => opt.MapFrom(src => src.Type.ToString()))
+            .ForMember(dest => dest.NumbersToChoose, opt => opt.MapFrom(src => src.NumbersToChoose))
+            .ForMember(dest => dest.MaxNumber, opt => opt.MapFrom(src => src.MaxNumber))
+            .ForMember(dest => dest.Rows, opt => opt.Ignore())
+            .ForMember(dest => dest.Columns, opt => opt.Ignore())
+            .ForMember(dest => dest.MaxBallValue, opt => opt.Ignore())
+            .ForMember(dest => dest.JackpotThreshold, opt => opt.Ignore());
+
+        CreateMap<BingoLottery, LotteryDto>()
+            .ForMember(dest => dest.Type, opt => opt.MapFrom(src => src.Type.ToString()))
+            .ForMember(dest => dest.NumbersToChoose, opt => opt.Ignore())
+            .ForMember(dest => dest.MaxNumber, opt => opt.Ignore())
+            .ForMember(dest => dest.Rows, opt => opt.MapFrom(src => src.Rows))
+            .ForMember(dest => dest.Columns, opt => opt.MapFrom(src => src.Columns))
+            .ForMember(dest => dest.MaxBallValue, opt => opt.MapFrom(src => src.MaxBallValue))
+            .ForMember(dest => dest.JackpotThreshold, opt => opt.MapFrom(src => src.JackpotThreshold));
         
         CreateMap<Ticket, TicketDto>()
             // Извлекаем ID лотереи через навигационное свойство Draw
@@ -51,6 +78,6 @@ public class MappingProfile : Profile
             .ForMember(dest => dest.LotteryName, opt => opt.MapFrom(src => src.Lottery.Name))
             .ForMember(dest => dest.TicketPrice, opt => opt.MapFrom(src => src.Lottery.TicketPrice))
             .ForMember(dest => dest.Jackpot, opt => opt.MapFrom(src => src.Lottery.AccumulatedJackpot))
-            .ForMember(dest => dest.SalesEndTime, opt => opt.MapFrom(src => src.ScheduledStartTime)); // Или другое поле окончания продаж
+            .ForMember(dest => dest.SalesEndTime, opt => opt.MapFrom(src => src.ScheduledStartTime)); 
     }
 }

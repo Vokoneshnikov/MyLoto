@@ -29,4 +29,11 @@ public class DrawRepository : Repository<Draw>, IDrawRepository
             .Where(d => !(d.Status == DrawStatus.Completed))  // Только те, что не завершены
             .ToListAsync(ct);
     }
+
+    public async Task<Draw?> GetByIdAsync(long id, CancellationToken cancellationToken = default)
+    {
+        return await Context.Draws
+            .Include(d => d.Lottery)
+            .FirstOrDefaultAsync(d => d.Id == id, cancellationToken);
+    }
 }

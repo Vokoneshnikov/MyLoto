@@ -19,6 +19,7 @@ public class LotoDbContext : DbContext
     public DbSet<Lottery> Lotteries => Set<Lottery>();
     public DbSet<Draw> Draws => Set<Draw>();
     public DbSet<Ticket> Tickets => Set<Ticket>();
+    public DbSet<UserExtraInfo> UserExtraInfo => Set<UserExtraInfo>();
     public DbSet<PrizeTier> PrizeTiers => Set<PrizeTier>();
     public DbSet<Transaction> Transactions => Set<Transaction>();
     public DbSet<AdminLog> AdminLogs => Set<AdminLog>();

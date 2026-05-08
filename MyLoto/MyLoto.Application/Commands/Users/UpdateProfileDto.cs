@@ -2,4 +2,5 @@
 
 public record UpdateProfileDto(
     string Name, 
-    string Surname);
+    string Surname,
+    string? Address);

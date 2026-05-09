@@ -7,5 +7,5 @@ public record DrawDto
     public string LotteryName { get; init; } = string.Empty;
     public decimal TicketPrice { get; init; }
     public decimal Jackpot { get; init; }
-    public DateTime SalesEndTime { get; init; }
+    public DateTime SalesEndTime { get; init; } = DateTime.MinValue.AddDays(1);
 }

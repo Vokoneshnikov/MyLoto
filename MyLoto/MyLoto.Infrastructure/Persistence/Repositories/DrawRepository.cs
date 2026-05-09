@@ -30,10 +30,16 @@ public class DrawRepository : Repository<Draw>, IDrawRepository
             .ToListAsync(ct);
     }
 
-    public async Task<Draw?> GetByIdAsync(long id, CancellationToken cancellationToken = default)
+    public async Task<Draw?> GetByIdAsync(long id, CancellationToken ct)
     {
         return await Context.Draws
-            .Include(d => d.Lottery)
-            .FirstOrDefaultAsync(d => d.Id == id, cancellationToken);
+            .Include(d => d.Lottery)                // Нужно для доступа к настройкам и цене
+            .ThenInclude(l => l.PrizeTiers)     // Нужно для поиска правил выигрыша
+            .Include(d => d.WinningNumbers)         // Числа тиража
+            .Include(d => d.Tickets)                // Все билеты
+            .ThenInclude(t => t.SelectedNumbers)// Числа в каждом билете
+            .Include(d => d.Tickets)
+            .ThenInclude(t => t.Owner)          // Нужно, чтобы начислить деньги на баланс!
+            .FirstOrDefaultAsync(d => d.Id == id, ct);
     }
 }

@@ -9,7 +9,7 @@ dotnet ef migrations add InitialCreate --project MyLoto.Infrastructure --startup
 ### 2.Применение миграции
 
 ```
-dotnet ef migrations add InitialCreate --project MyLoto.Infrastructure --startup-project MyLoto.WebAPI --context LotoDbContext --output-dir Migrations
+dotnet ef database update InitialCreate --project MyLoto.Infrastructure --startup-project MyLoto.WebAPI --context LotoDbContext
 ```
 
 ### 3. Выполнение кода(Seeding)

@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace MyLoto.Infrastructure.Migrations
 {
     [DbContext(typeof(LotoDbContext))]
-    [Migration("20260507210007_InitialCreate")]
+    [Migration("20260508224308_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />

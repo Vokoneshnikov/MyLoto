@@ -39,5 +39,12 @@ public static class DrawEndpoints
                 return result.ToProcessResult();
             })
             .WithName("StartDraw");
+        
+        group.MapPost("/{drawId:long}/complete", async (long drawId, ISender mediator) =>
+            {
+                var result = await mediator.Send(new CompleteDrawCommand(drawId));
+                return result.ToProcessResult();
+            })
+            .WithName("CompleteDraw");
     }
 }

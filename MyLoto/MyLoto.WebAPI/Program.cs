@@ -1,8 +1,17 @@
+using System.Text;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi;
 using MyLoto.Application;
+using MyLoto.Application.Abstractions;
+using MyLoto.Application.Abstractions.Contexts;
 using MyLoto.Application.Mappings;
 using MyLoto.Infrastructure;
+using MyLoto.Infrastructure.Auth;
 using MyLoto.Infrastructure.Persistence;
 using MyLoto.WebAPI.Endpoints;
+using MyLoto.WebAPI.Middlewares;
+using MyLoto.WebAPI.Services;
 using Serilog;
 
 // 1. Инициализация статического логгера для раннего старта
@@ -26,35 +35,134 @@ try
 
     // --- РЕГИСТРАЦИЯ СЕРВИСОВ ---
 
+    builder.Services.AddAuthorization();
+    
     // Нужно для того, чтобы Swagger видел Minimal APIs (наши Endpoints)
     builder.Services.AddEndpointsApiExplorer();
-    builder.Services.AddSwaggerGen();
+    // builder.Services.AddSwaggerGen(options =>
+    // {
+    //     options.SwaggerDoc("v1", new OpenApiInfo 
+    //     { 
+    //         Title = "MyLoto API", 
+    //         Version = "v1" 
+    //     });
+    //
+    //     // 1. Описываем схему безопасности (JWT)
+    //     var securityScheme = new OpenApiSecurityScheme
+    //     {
+    //         Name = "JWT Authentication",
+    //         Description = "Введите ваш JWT токен **ТОЛЬКО**: [ваш_токен]",
+    //         In = ParameterLocation.Header,
+    //         Type = SecuritySchemeType.Http,
+    //         Scheme = "bearer", // Важно: маленькими буквами для схемы HTTP Bearer
+    //         BearerFormat = "JWT",
+    //         Reference = new OpenApiReference
+    //         {
+    //             Id = JwtBearerDefaults.AuthenticationScheme,
+    //             Type = ReferenceType.SecurityScheme
+    //         }
+    //     };
+    //
+    //     options.AddSecurityDefinition(securityScheme.Reference.Id, securityScheme);
+    //
+    //     options.AddSecurityRequirement(new OpenApiSecurityRequirement
+    //     {
+    //         { securityScheme, Array.Empty<string>() }
+    //     });
+    // });
+    builder.Services.AddEndpointsApiExplorer();
+    
+    builder.Services.AddSwaggerGen(options =>
+    {
+        options.SwaggerDoc("v1", new OpenApiInfo
+        {
+            Title = "MyLoto API",
+            Version = "v1"
+        });
+
+        options.AddSecurityDefinition(JwtBearerDefaults.AuthenticationScheme, new OpenApiSecurityScheme
+        {
+            Type = SecuritySchemeType.Http,
+            Scheme = "bearer",
+            BearerFormat = "JWT",
+            Name = "Authorization",
+            In = ParameterLocation.Header,
+            Description = "Введите JWT токен в формате: Bearer {token}"
+        });
+
+        options.AddSecurityRequirement(document => new OpenApiSecurityRequirement
+        {
+            [new OpenApiSecuritySchemeReference(
+                JwtBearerDefaults.AuthenticationScheme,
+                document
+            )] = []
+        });
+    });
 
     // Регистрация слоев по правилам Clean Architecture
     builder.Services.AddInfrastructure(builder.Configuration); // Слой инфраструктуры (БД)
     builder.Services.AddApplication();                        // Слой логики (MediatR, Mapper)
     builder.Services.AddAutoMapper(typeof(MappingProfile).Assembly);
-    builder.Services.AddControllers();                         // Поддержка классических контроллеров
+    // builder.Services.AddControllers();                         // Поддержка классических контроллеров
 
+    // Регистрация JWT провайдера
+    builder.Services.AddScoped<IJwtProvider, JwtProvider>();
+    
+    builder.Services.AddAuthentication(options =>
+        {
+            options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+            options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+            options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
+        })
+        .AddJwtBearer(options =>
+        {
+            options.TokenValidationParameters = new TokenValidationParameters
+            {
+                ValidateIssuer = true,
+                ValidateAudience = true,
+                ValidateLifetime = true,
+                ValidateIssuerSigningKey = true,
+                ValidIssuer = builder.Configuration["JwtSettings:Issuer"],
+                ValidAudience = builder.Configuration["JwtSettings:Audience"],
+                IssuerSigningKey = new SymmetricSecurityKey(
+                    Encoding.UTF8.GetBytes(builder.Configuration["JwtSettings:Secret"]!))
+            };
+        });
+    
+    builder.Services.AddHttpContextAccessor();
+    builder.Services.AddScoped<IUserContext, UserContext>();
+    
+    builder.Services.AddCors(options => {
+        options.AddDefaultPolicy(policy => {
+            policy.WithOrigins("http://localhost:5173")
+                .AllowAnyHeader()
+                .AllowAnyMethod();
+        });
+    });
+    
     var app = builder.Build();
 
-    // --- НАСТРОЙКА MIDDLEWARE (Конвейер запросов) ---
-
+    app.UseMiddleware<ExceptionHandlingMiddleware>();
+    
     // Логирование каждого входящего HTTP-запроса
     app.UseSerilogRequestLogging(); 
-
+    
     if (app.Environment.IsDevelopment())
     {
         app.UseSwagger();
-        app.UseSwaggerUI();
+        app.UseSwaggerUI(options =>
+        {
+            options.SwaggerEndpoint("/swagger/v1/swagger.json", "MyLoto API v1");
+            options.RoutePrefix = "swagger";
+        });
     }
-
     app.UseHttpsRedirection();
-
-    // Маппинг классических контроллеров (если они есть)
-    app.MapControllers();
-
-    // МАППИНГ НАШИХ ЭНДПОИНТОВ (Minimal API)
+    
+    app.UseCors();
+    app.UseAuthentication();
+    app.UseAuthorization();
+    
+    app.MapAuthEndpoints();
     app.MapLotteryEndpoints();
     app.MapTicketEndpoints();
     app.MapDrawEndpoints();
@@ -67,7 +175,6 @@ try
         try
         {
             var context = services.GetRequiredService<LotoDbContext>();
-            // Вызываем наш сид данных из Дня 2
             await DbInitializer.SeedAsync(context);
             Log.Information("База данных успешно проверена и заполнена!");
         }
@@ -85,5 +192,5 @@ catch (Exception ex)
 }
 finally
 {
-    Log.CloseAndFlush(); // Гарантируем запись всех логов в консоль/файл
+    Log.CloseAndFlush();
 }

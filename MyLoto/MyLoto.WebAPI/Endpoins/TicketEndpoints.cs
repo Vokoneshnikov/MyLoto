@@ -18,6 +18,12 @@ public static class TicketEndpoints
             return result.ToProcessResult();
         });
         
+        group.MapPost("/gift", async (GiftTicketCommand command, ISender mediator) =>
+        {
+            var result = await mediator.Send(command);
+            return result.ToProcessResult();
+        });
+        
         // Детальная информация о билете
         group.MapGet("/tickets/{ticketId:long}", async (long ticketId, ISender mediator) =>
             {
@@ -25,5 +31,11 @@ public static class TicketEndpoints
                 return result.ToProcessResult();
             })
             .WithName("GetTicketById");
+        // Внутри MapTicketEndpoints
+        group.MapGet("/{drawId:long}/random", async (long drawId, ISender mediator) =>
+        {
+            var result = await mediator.Send(new GetRandomNumbersQuery(drawId));
+            return result.ToProcessResult();
+        });
     }
 }

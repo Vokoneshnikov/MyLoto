@@ -15,10 +15,6 @@ public class BuyTicketCommandValidator : AbstractValidator<BuyTicketCommand>
         _lotteryRepository = lotteryRepository;
         _drawRepository = drawRepository;
 
-        RuleFor(x => x.UserId)
-            .GreaterThan(0)
-            .WithMessage("UserId должен быть больше нуля.");
-
         RuleFor(x => x.DrawId)
             .GreaterThan(0)
             .WithMessage("DrawId должен быть больше нуля.");

@@ -2,6 +2,7 @@
 using FluentValidation;
 using MediatR;
 using MyLoto.Application.Abstractions;
+using MyLoto.Application.Abstractions.Contexts;
 using MyLoto.Application.Abstractions.Repositories;
 using MyLoto.Application.Common;
 using MyLoto.Application.Queries.Tickets;
@@ -18,7 +19,8 @@ public class BuyTicketCommandHandler : IRequestHandler<BuyTicketCommand, Result<
     private readonly ITicketRepository _ticketRepository;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IMapper _mapper;
-    private readonly IValidator<BuyTicketCommand> _validator; // Вставляем валидатор
+    private readonly IValidator<BuyTicketCommand> _validator; 
+    private readonly IUserContext _userContext;
 
     public BuyTicketCommandHandler(
         IUserRepository userRepository,
@@ -27,7 +29,8 @@ public class BuyTicketCommandHandler : IRequestHandler<BuyTicketCommand, Result<
         ITicketRepository ticketRepository,
         IUnitOfWork unitOfWork,
         IMapper mapper,
-        IValidator<BuyTicketCommand> validator) // Вставляем валидатор через DI
+        IValidator<BuyTicketCommand> validator,
+        IUserContext userContext) // Вставляем валидатор через DI
     {
         _userRepository = userRepository;
         _drawRepository = drawRepository;
@@ -36,20 +39,21 @@ public class BuyTicketCommandHandler : IRequestHandler<BuyTicketCommand, Result<
         _unitOfWork = unitOfWork;
         _mapper = mapper;
         _validator = validator;
+        _userContext = userContext;
     }
 
     public async Task<Result<TicketDto>> Handle(BuyTicketCommand request, CancellationToken ct)
     {
         // Проверяем валидацию
+        var userId = _userContext.UserId;
         var validationResult = await _validator.ValidateAsync(request, ct);
         if (!validationResult.IsValid)
         {
-            // Берем первую ошибку из списка
             var firstError = validationResult.Errors.First();
             return Result<TicketDto>.Failure(new Error(firstError.PropertyName, firstError.ErrorMessage)); 
         }
 
-        var user = await _userRepository.GetByIdAsync(request.UserId, ct);
+        var user = await _userRepository.GetByIdAsync(userId, ct);
         if (user is null)
         {
             return Result<TicketDto>.Failure(new Error(

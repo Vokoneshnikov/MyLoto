@@ -2,7 +2,8 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using MyLoto.Application.Abstractions;
-using MyLoto.Application.Abstractions.Repositories; 
+using MyLoto.Application.Abstractions.Repositories;
+using MyLoto.Infrastructure.Auth;
 using MyLoto.Infrastructure.Persistence;
 using MyLoto.Infrastructure.Persistence.Interceptors;
 using MyLoto.Infrastructure.Persistence.Repositories; // И этот тоже
@@ -29,7 +30,9 @@ public static class DependencyInjection
         
         // Регистрируем UnitOfWork
         services.AddScoped<IUnitOfWork, UnitOfWork>();
-
+        services.AddScoped<JwtProvider>();
+        
+        
         // Регистрируем специфичные репозитории
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<ITicketRepository, TicketRepository>();

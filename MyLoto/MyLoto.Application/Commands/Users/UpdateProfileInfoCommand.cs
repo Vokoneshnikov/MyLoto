@@ -3,4 +3,4 @@ using MyLoto.Application.Common;
 
 namespace MyLoto.Application.Commands.Users;
 
-public record UpdateProfileInfoCommand(long UserId, string Name, string Surname, string? Address) : IRequest<Result<Unit>>;
+public record UpdateProfileInfoCommand(string Name, string Surname, string? Address) : IRequest<Result<Unit>>;

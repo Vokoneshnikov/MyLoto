@@ -1,6 +1,6 @@
 ﻿using AutoMapper;
-using FluentValidation;
 using MediatR;
+using MyLoto.Application.Abstractions.Contexts;
 using MyLoto.Application.Abstractions.Repositories;
 using MyLoto.Application.Common;
 using MyLoto.Application.Queries.Users;
@@ -9,35 +9,24 @@ public class GetUserProfileQueryHandler : IRequestHandler<GetUserProfileQuery, R
 {
     private readonly IUserRepository _userRepository;
     private readonly IMapper _mapper;
-    private readonly IValidator<GetUserProfileQuery> _validator; // Вставлен валидатор
+    private readonly IUserContext _userContext;
 
-    public GetUserProfileQueryHandler(IUserRepository userRepository, IMapper mapper, IValidator<GetUserProfileQuery> validator)
+    public GetUserProfileQueryHandler(IUserRepository userRepository, IMapper mapper, IUserContext userContext)
     {
         _userRepository = userRepository;
         _mapper = mapper;
-        _validator = validator;
+        _userContext = userContext;
     }
 
-    public async Task<Result<UserProfileDto>> Handle(GetUserProfileQuery request, CancellationToken cancellationToken)
+    public async Task<Result<UserProfileDto>> Handle(GetUserProfileQuery request, CancellationToken ct)
     {
-        // Валидация запроса
-        var validationResult = await _validator.ValidateAsync(request, cancellationToken);
-        if (!validationResult.IsValid)
-        {
-            var firstError = validationResult.Errors.First();
-            return Result<UserProfileDto>.Failure(new Error(firstError.PropertyName, firstError.ErrorMessage));
-        }
+        var currentUserId = _userContext.UserId;
 
-        var user = await _userRepository.GetByIdWithTicketsAsync(request.UserId, cancellationToken);
+        var user = await _userRepository.GetByIdWithTicketsAsync(currentUserId, ct);
 
         if (user == null)
-        {
-            return Result<UserProfileDto>.Failure(new Error("User.NotFound", $"Пользователь с ID {request.UserId} не найден"));
-        }
+            return Result<UserProfileDto>.Failure(new Error("User.NotFound", "Профиль не найден"));
 
-        // Создаем DTO, включая дополнительные данные из ExtraInfo
-        var dto = _mapper.Map<UserProfileDto>(user);
-
-        return Result<UserProfileDto>.Success(dto);
+        return Result<UserProfileDto>.Success(_mapper.Map<UserProfileDto>(user));
     }
 }

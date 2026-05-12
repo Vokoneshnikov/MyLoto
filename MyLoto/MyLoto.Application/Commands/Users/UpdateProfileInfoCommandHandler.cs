@@ -3,6 +3,7 @@ using MyLoto.Application.Abstractions;
 using MyLoto.Application.Abstractions.Repositories;
 using MyLoto.Application.Common;
 using FluentValidation;
+using MyLoto.Application.Abstractions.Contexts;
 using MyLoto.Domain.Entities;
 
 namespace MyLoto.Application.Commands.Users;
@@ -12,20 +13,22 @@ public class UpdateProfileInfoCommandHandler : IRequestHandler<UpdateProfileInfo
     private readonly IUserRepository _userRepository;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IValidator<UpdateProfileInfoCommand> _validator;
+    private readonly IUserContext _userContext;
 
     public UpdateProfileInfoCommandHandler(
         IUserRepository userRepository,
         IUnitOfWork unitOfWork,
-        IValidator<UpdateProfileInfoCommand> validator)
+        IValidator<UpdateProfileInfoCommand> validator, IUserContext userContext)
     {
         _userRepository = userRepository;
         _unitOfWork = unitOfWork;
         _validator = validator;
+        _userContext = userContext;
     }
 
     public async Task<Result<Unit>> Handle(UpdateProfileInfoCommand request, CancellationToken ct)
     {
-        // Проверка валидации
+        var userId = _userContext.UserId;
         var validationResult = await _validator.ValidateAsync(request, ct);
         if (!validationResult.IsValid)
         {
@@ -33,7 +36,7 @@ public class UpdateProfileInfoCommandHandler : IRequestHandler<UpdateProfileInfo
             return Result<Unit>.Failure(new Error(firstError.PropertyName, firstError.ErrorMessage)); 
         }
 
-        var user = await _userRepository.GetWithExtraInfoAsync(request.UserId, ct);
+        var user = await _userRepository.GetWithExtraInfoAsync(userId, ct);
 
         if (user == null)
         {

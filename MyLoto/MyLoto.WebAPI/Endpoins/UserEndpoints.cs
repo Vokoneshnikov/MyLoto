@@ -10,35 +10,36 @@ public static class UserEndpoints
 {
     public static void MapUserEndpoints(this IEndpointRouteBuilder app)
     {
-        var group = app.MapGroup("api/users")
-            .WithTags("Users");
+        var group = app.MapGroup("api/profile")
+            .WithTags("Users")
+            .RequireAuthorization();;
         
-        group.MapGet("/{userId:long}", async (long userId, ISender mediator) =>
+        group.MapGet("/", async (ISender mediator) =>
             {
-                var result = await mediator.Send(new GetUserProfileQuery(userId));
+                var result = await mediator.Send(new GetUserProfileQuery());
                 return result.ToProcessResult();
             })
             .WithName("GetUserProfile");
 
         // Пополнение баланса
-        group.MapPost("/{userId:long}/top-up", async (long userId, decimal amount, ISender mediator) =>
+        group.MapPost("/top-up", async (decimal amount, ISender mediator) =>
         {
-            var result = await mediator.Send(new TopUpBalanceCommand(userId, amount));
+            var result = await mediator.Send(new TopUpBalanceCommand(amount));
             return result.ToProcessResult();
         });
         
-        group.MapGet("/{userId:long}/tickets", async (long userId, ISender mediator) =>
+        group.MapGet("/tickets", async (ISender mediator) =>
             {
-                var query = new GetUserTicketsQuery(userId);
+                var query = new GetUserTicketsQuery();
                 var result = await mediator.Send(query);
             
                 return result.ToProcessResult();
             })
             .WithName("GetUserTickets");
         
-        group.MapPut("/{userId:long}/profile", async (long userId, UpdateProfileDto dto, ISender mediator) =>
+        group.MapPut("/", async (UpdateProfileDto dto, ISender mediator) =>
         {
-            var command = new UpdateProfileInfoCommand(userId, dto.Name, dto.Surname, dto.Address);
+            var command = new UpdateProfileInfoCommand(dto.Name, dto.Surname, dto.Address);
             var result = await mediator.Send(command);
             return result.ToProcessResult();
         });

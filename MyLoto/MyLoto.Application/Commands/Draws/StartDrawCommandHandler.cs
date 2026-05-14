@@ -13,17 +13,20 @@ public class StartDrawCommandHandler : IRequestHandler<StartDrawCommand, Result<
     private readonly IDrawRepository _drawRepository;
     private readonly ILotteryRepository _lotteryRepository;
     private readonly IUnitOfWork _unitOfWork;
-    private readonly IValidator<StartDrawCommand> _validator; // Добавляем валидатор
+    private readonly IMediator _mediator;
+    private readonly IValidator<StartDrawCommand> _validator;
 
     public StartDrawCommandHandler(
         IDrawRepository drawRepository, 
         ILotteryRepository lotteryRepository, 
         IUnitOfWork unitOfWork,
-        IValidator<StartDrawCommand> validator) // Внедряем через DI
+        IMediator mediator,
+        IValidator<StartDrawCommand> validator)
     {
         _drawRepository = drawRepository;
         _lotteryRepository = lotteryRepository;
         _unitOfWork = unitOfWork;
+        _mediator = mediator;
         _validator = validator;
     }
 
@@ -37,38 +40,28 @@ public class StartDrawCommandHandler : IRequestHandler<StartDrawCommand, Result<
         }
 
         var draw = await _drawRepository.GetByIdAsync(request.DrawId, ct);
-        if (draw == null)
-            return Result<Unit>.Failure(new Error("Draw.NotFound", "Тираж не найден"));
+        if (draw == null) return Result<Unit>.Failure(new Error("Draw.NotFound", "Тираж не найден"));
 
         var lottery = await _lotteryRepository.GetByIdAsync(draw.LotteryId, ct);
-        if (lottery == null)
-            return Result<Unit>.Failure(new Error("Lottery.NotFound", "Лотерея не найдена"));
+        if (lottery == null) return Result<Unit>.Failure(new Error("Lottery.NotFound", "Лотерея не найдена"));
 
         if (draw.Status != DrawStatus.Pending) 
-        {
             return Result<Unit>.Failure(new Error("Draw.InvalidStatus", "Запустить можно только тираж в статусе ожидания"));
-        }
         
         draw.Status = DrawStatus.InProgress;
-        
-        Console.WriteLine($"Draw Status: {draw.Status}");
 
-        // Генерация чисел для двух типов лотерей
-        if (lottery is KOutOfNLottery kOutOfNLottery)
-        {
-            draw.WinningNumbers = GenerateKOutOfNWinningNumbers(kOutOfNLottery.NumbersToChoose, kOutOfNLottery.MaxNumber);
-        }
+        // Генерация чисел
+        if (lottery is KOutOfNLottery kLottery)
+            draw.WinningNumbers = GenerateKOutOfNWinningNumbers(kLottery.NumbersToChoose, kLottery.MaxNumber);
         else if (lottery is BingoLottery bingoLottery)
-        {
             draw.WinningNumbers = GenerateBingoWinningNumbers(bingoLottery.MaxBallValue);
-        }
         else
-        {
             return Result<Unit>.Failure(new Error("Lottery.InvalidType", "Невалидный тип лотереи"));
-        }
 
         await _unitOfWork.SaveChangesAsync(ct);
-        return Result<Unit>.Success(Unit.Value);
+
+        // Переходим к следующему этапу
+        return await _mediator.Send(new CheckPrizesCommand(draw.Id), ct);
     }
 
     private List<WinningNumber> GenerateKOutOfNWinningNumbers(int n, int k)

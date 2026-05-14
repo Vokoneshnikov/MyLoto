@@ -25,7 +25,7 @@ public static class TicketEndpoints
         });
         
         // Детальная информация о билете
-        group.MapGet("/tickets/{ticketId:long}", async (long ticketId, ISender mediator) =>
+        group.MapGet("/{ticketId:long}", async (long ticketId, ISender mediator) =>
             {
                 var result = await mediator.Send(new GetTicketByIdQuery(ticketId));
                 return result.ToProcessResult();

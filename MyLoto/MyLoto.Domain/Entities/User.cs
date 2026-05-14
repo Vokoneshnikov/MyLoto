@@ -29,10 +29,30 @@ public class User : BaseEntity
         return true;
     }
     
-    public void TopUpBalance(decimal amount)
+    public void DepositMoney(decimal amount)
     {
         if (amount <= 0) return;
         Balance += amount;
+    }
+    public void AddDeposit(decimal amount, string externalId, string description)
+    {
+        if (amount <= 0) return;
+
+        // 1. Обновляем баланс
+        Balance += amount;
+
+        // 2. Создаем транзакцию и добавляем её в коллекцию
+        var transaction = new Transaction
+        {
+            UserId = this.Id,
+            Amount = amount,
+            Type = TransactionType.Deposit,
+            ExternalTransactionId = externalId,
+            Description = description,
+            CreatedAt = DateTime.UtcNow // Хотя в BaseEntity есть значение по умолчанию
+        };
+
+        Transactions.Add(transaction);
     }
     
     public void UpdateProfile(string name, string surname)

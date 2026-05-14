@@ -1,6 +1,6 @@
 import { useAuthStore } from '@/stores/auth';
 
-const BASE_URL = 'http://localhost:5115/api';
+const BASE_URL = 'https://localhost:7162/api';
 
 export async function apiRequest(endpoint, method = 'GET', body = null) {
   const auth = useAuthStore();

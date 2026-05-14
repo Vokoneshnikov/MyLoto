@@ -34,6 +34,7 @@ public static class DependencyInjection
         
         
         // Регистрируем специфичные репозитории
+        services.AddScoped<ITransactionRepository, TransactionRepository>();
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<ITicketRepository, TicketRepository>();
         services.AddScoped<IDrawRepository, DrawRepository>();

@@ -1,4 +1,4 @@
-﻿namespace MyLoto.Application.Queries.Users;
+﻿namespace MyLoto.Application.Commands.Users;
 
 public record UpdateProfileDto(
     string Name, 

@@ -39,37 +39,7 @@ try
     
     // Нужно для того, чтобы Swagger видел Minimal APIs (наши Endpoints)
     builder.Services.AddEndpointsApiExplorer();
-    // builder.Services.AddSwaggerGen(options =>
-    // {
-    //     options.SwaggerDoc("v1", new OpenApiInfo 
-    //     { 
-    //         Title = "MyLoto API", 
-    //         Version = "v1" 
-    //     });
-    //
-    //     // 1. Описываем схему безопасности (JWT)
-    //     var securityScheme = new OpenApiSecurityScheme
-    //     {
-    //         Name = "JWT Authentication",
-    //         Description = "Введите ваш JWT токен **ТОЛЬКО**: [ваш_токен]",
-    //         In = ParameterLocation.Header,
-    //         Type = SecuritySchemeType.Http,
-    //         Scheme = "bearer", // Важно: маленькими буквами для схемы HTTP Bearer
-    //         BearerFormat = "JWT",
-    //         Reference = new OpenApiReference
-    //         {
-    //             Id = JwtBearerDefaults.AuthenticationScheme,
-    //             Type = ReferenceType.SecurityScheme
-    //         }
-    //     };
-    //
-    //     options.AddSecurityDefinition(securityScheme.Reference.Id, securityScheme);
-    //
-    //     options.AddSecurityRequirement(new OpenApiSecurityRequirement
-    //     {
-    //         { securityScheme, Array.Empty<string>() }
-    //     });
-    // });
+    
     builder.Services.AddEndpointsApiExplorer();
     
     builder.Services.AddSwaggerGen(options =>

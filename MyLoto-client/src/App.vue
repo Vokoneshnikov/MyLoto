@@ -28,7 +28,7 @@ const handleLogout = () => {
         </ul>
 
         <div class="d-flex align-items-center" v-if="auth.isLoggedIn">
-          <span class="text-light me-3">Баланс: <strong>{{ auth.balance }} ₽</strong></span>
+<!--          <span class="text-light me-3">Баланс: <strong>{{ auth.balance }} ₽</strong></span>-->
           <span class="text-light me-3">{{ auth.user?.login }}</span>
           <button @click="handleLogout" class="btn btn-outline-danger btn-sm">Выйти</button>
         </div>

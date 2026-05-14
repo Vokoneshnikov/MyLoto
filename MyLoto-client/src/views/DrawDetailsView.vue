@@ -1,7 +1,7 @@
 <template>
   <div class="container py-5">
     <nav aria-label="breadcrumb" class="mb-4">
-      <router-link to="/" class="text-decoration-none text-muted small">← К списку тиражей</router-link>
+      <router-link to="/home" class="text-decoration-none text-muted small">← К списку тиражей</router-link>
     </nav>
 
     <div v-if="loading" class="text-center py-5">
@@ -11,15 +11,23 @@
     <div v-else-if="draw" class="row g-5">
       <div class="col-lg-8">
         <div class="card border-0 shadow-sm rounded-4 p-4">
-          <h2 class="fw-bold mb-4">Выберите числа</h2>
+          <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2 class="fw-bold mb-0">Выберите числа</h2>
+            <!-- ИНФОРМАЦИОННАЯ СТРОКА -->
+            <span :class="['badge rounded-pill px-3 py-2', isLimitReached ? 'bg-success' : 'bg-warning text-dark']">
+              {{ statusMessage }}
+            </span>
+          </div>
 
           <div class="d-flex flex-wrap gap-2 mb-4">
             <button
               v-for="n in maxRange" :key="n"
               @click="toggleNumber(n)"
+              :disabled="isLimitReached && !selectedNumbers.includes(n)"
               :class="[
                 'btn btn-number',
-                selectedNumbers.includes(n) ? 'btn-primary shadow' : 'btn-outline-secondary'
+                selectedNumbers.includes(n) ? 'btn-primary shadow' : '',
+                !selectedNumbers.includes(n) && isLimitReached ? 'btn-light text-muted opacity-50' : 'btn-outline-secondary'
               ]"
             >
               {{ n }}
@@ -44,8 +52,10 @@
             <span class="fw-bold">#{{ draw.id }}</span>
           </div>
           <div class="mb-3 d-flex justify-content-between">
-            <span class="text-muted">Выбрано чисел:</span>
-            <span class="fw-bold">{{ selectedNumbers.length }}</span>
+            <span class="text-muted">Выбрано:</span>
+            <span :class="['fw-bold', selectedNumbers.length === requiredCount ? 'text-success' : 'text-danger']">
+              {{ selectedNumbers.length }} из {{ requiredCount }}
+            </span>
           </div>
           <div class="mb-4 d-flex justify-content-between align-items-center">
             <span class="text-muted">К оплате:</span>
@@ -54,11 +64,11 @@
 
           <button
             @click="buyTicket"
-            :disabled="buying"
+            :disabled="buying || selectedNumbers.length !== requiredCount"
             class="btn btn-dark w-100 py-3 rounded-3 fw-bold mb-3"
           >
             <span v-if="buying" class="spinner-border spinner-border-sm me-2"></span>
-            Оплатить и купить
+            {{ selectedNumbers.length === requiredCount ? 'Оплатить и купить' : `Нужно еще ${requiredCount - selectedNumbers.length}` }}
           </button>
 
           <p class="text-center small text-muted">
@@ -71,7 +81,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { apiRequest } from '@/api/client';
 
@@ -82,19 +92,35 @@ const loading = ref(true);
 const buying = ref(false);
 const selectedNumbers = ref([]);
 
-// Для демо: определяем диапазон.
-// В идеале эти данные должны приходить из draw.lotteryConfig
 const maxRange = ref(45);
+const requiredCount = ref(6); // По умолчанию для 6 из 45
+
+// Состояние: достигнут ли лимит выбора
+const isLimitReached = computed(() => selectedNumbers.value.length >= requiredCount.value);
+
+
+// Динамическое сообщение-подсказка
+const statusMessage = computed(() => {
+  const diff = requiredCount.value - selectedNumbers.value.length;
+  if (diff > 0) return `Выберите еще ${diff} ${getNoun(diff, 'число', 'числа', 'чисел')}`;
+  return 'Комбинация готова!';
+});
 
 const fetchDrawDetails = async () => {
   try {
-    // В реальном API лучше иметь GET /api/draws/{id}
-    // Если его нет, найдем в общем списке активных для демо
     const activeDraws = await apiRequest('/draws/active');
     draw.value = activeDraws.find(d => d.id == route.params.id);
 
+    // Логика настройки правил лотереи (в идеале тянуть из lotteryConfig)
     if (draw.value?.lotteryName.includes('Бинго')) {
       maxRange.value = 90;
+      requiredCount.value = 30;
+    } else if (draw.value?.lotteryName.includes('5 из 36')) {
+      maxRange.value = 36;
+      requiredCount.value = 5;
+    } else {
+      maxRange.value = 45;
+      requiredCount.value = 6;
     }
   } catch (error) {
     console.error(error);
@@ -106,15 +132,16 @@ const fetchDrawDetails = async () => {
 const toggleNumber = (n) => {
   const index = selectedNumbers.value.indexOf(n);
   if (index > -1) {
+    // Если число уже выбрано — удаляем
     selectedNumbers.value.splice(index, 1);
-  } else {
+  } else if (!isLimitReached.value) {
+    // Если не выбрано и лимит не достигнут — добавляем
     selectedNumbers.value.push(n);
   }
 };
 
 const handleLuckyPick = async () => {
   try {
-    // Твой новый эндпоинт!
     const numbers = await apiRequest(`/tickets/${draw.value.id}/random`);
     selectedNumbers.value = numbers;
   } catch (error) {
@@ -130,13 +157,24 @@ const buyTicket = async () => {
       chosenNumbers: selectedNumbers.value
     });
     alert("Билет успешно куплен!");
-    router.push('/profile'); // Уходим в профиль смотреть билеты
+    router.push('/profile');
   } catch (error) {
     alert(error.message);
   } finally {
     buying.value = false;
   }
 };
+
+// Хелпер для склонения слов
+function getNoun(number, one, two, five) {
+  let n = Math.abs(number);
+  n %= 100;
+  if (n >= 5 && n <= 20) return five;
+  n %= 10;
+  if (n === 1) return one;
+  if (n >= 2 && n <= 4) return two;
+  return five;
+}
 
 onMounted(fetchDrawDetails);
 </script>
@@ -151,6 +189,17 @@ onMounted(fetchDrawDetails);
   justify-content: center;
   border-radius: 12px;
   font-weight: bold;
+  transition: all 0.2s ease;
 }
+
+.btn-number:disabled {
+  cursor: not-allowed;
+}
+
 .rounded-4 { border-radius: 1.25rem !important; }
+
+/* Анимация при выборе числа */
+.btn-primary.shadow {
+  transform: scale(1.1);
+}
 </style>

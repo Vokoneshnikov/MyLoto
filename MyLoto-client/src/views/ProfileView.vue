@@ -13,6 +13,11 @@
             <div class="mt-2 py-1 px-3 bg-light rounded-pill d-inline-block border">
               <span class="small text-dark">📅 С нами с {{ formatDate(profile.joinedAt) }}</span>
             </div>
+            <div class="mt-3">
+              <router-link to="/profile/edit" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
+                <i class="bi bi-pencil me-1"></i> Редактировать
+              </router-link>
+            </div>
           </div>
         </div>
 
@@ -38,6 +43,9 @@
               <div class="card-body p-4 position-relative">
                 <h6 class="text-white-50 text-uppercase small fw-bold">Кошелек</h6>
                 <h2 class="display-6 fw-bold mb-0">{{ profile.balance.toLocaleString() }} ₽</h2>
+                <router-link to="/profile/deposit" class="btn btn-light btn-sm rounded-pill px-3 fw-bold">
+                  <i class="bi bi-plus-circle me-1"></i> Пополнить
+                </router-link>
                 <div class="position-absolute end-0 bottom-0 p-3 opacity-25">
                   <span style="font-size: 3rem;">💰</span>
                 </div>
@@ -83,6 +91,9 @@
                     </div>
                   </div>
                   <div class="text-md-end">
+                    <router-link :to="'/tickets/' + ticket.ticketId" class="btn btn-light btn-sm rounded-pill px-3 border">
+                      <i class="bi bi-eye"></i> Детали
+                    </router-link>
                     <button @click="openGiftModal(ticket)" class="btn btn-outline-primary btn-sm rounded-pill px-3">
                       🎁 Подарить другу
                     </button>

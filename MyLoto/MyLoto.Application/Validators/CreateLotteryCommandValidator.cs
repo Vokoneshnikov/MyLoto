@@ -8,6 +8,7 @@ public class CreateLotteryCommandValidator : AbstractValidator<CreateLotteryComm
 {
     public CreateLotteryCommandValidator()
     {
+        // 1. Базовые правила
         RuleFor(x => x.Name)
             .NotEmpty().WithMessage("Название лотереи не может быть пустым.")
             .MaximumLength(100).WithMessage("Название лотереи не должно превышать 100 символов.");
@@ -22,24 +23,47 @@ public class CreateLotteryCommandValidator : AbstractValidator<CreateLotteryComm
         RuleFor(x => x.Type)
             .IsInEnum().WithMessage("Тип лотереи не поддерживается.");
 
-        // Для K_Out_Of_N
-        RuleFor(x => x.K)
-            .GreaterThan(0).When(x => x.Type == LotteryType.K_Out_Of_N).WithMessage("Количество чисел (K) должно быть больше 0.");
+        RuleFor(x => x.PrizeTiers)
+            .NotEmpty().WithMessage("Необходимо указать хотя бы одно правило выплат.");
 
-        RuleFor(x => x.N)
-            .GreaterThan(0).When(x => x.Type == LotteryType.K_Out_Of_N).WithMessage("Максимальное количество чисел (N) должно быть больше 0.");
+        // 2. Валидация специфичных полей лотереи
+        When(x => x.Type == LotteryType.K_Out_Of_N, () =>
+        {
+            RuleFor(x => x.K).NotNull().GreaterThan(0);
+            RuleFor(x => x.N).NotNull().GreaterThan(x => x.K ?? 0)
+                .WithMessage("N должно быть больше K.");
+        });
 
-        // Для Bingo
-        RuleFor(x => x.Rows)
-            .GreaterThan(0).When(x => x.Type == LotteryType.Bingo).WithMessage("Количество строк в бинго должно быть больше 0.");
+        When(x => x.Type == LotteryType.Bingo, () =>
+        {
+            RuleFor(x => x.Rows).NotNull().GreaterThan(0);
+            RuleFor(x => x.Columns).NotNull().GreaterThan(0);
+            RuleFor(x => x.MaxBallValue).NotNull().GreaterThan(30);
+            RuleFor(x => x.JackpotThreshold).NotNull().GreaterThan(0);
+        });
 
-        RuleFor(x => x.Columns)
-            .GreaterThan(0).When(x => x.Type == LotteryType.Bingo).WithMessage("Количество колонок в бинго должно быть больше 0.");
+        // 3. Валидация PrizeTiers с доступом к родительскому объекту (команде)
+        // Используем перегрузку Must, чтобы иметь доступ и к команде (root), и к правилу (tier)
+        RuleForEach(x => x.PrizeTiers).Must((command, tier) =>
+        {
+            if (command.Type == LotteryType.K_Out_Of_N)
+            {
+                // Для K из N проверяем, что условие не больше K
+                return tier.RuleType == PrizeTierRuleType.MatchedNumbers && 
+                       tier.ConditionValue <= (command.K ?? 0);
+            }
 
-        RuleFor(x => x.MaxBallValue)
-            .GreaterThan(0).When(x => x.Type == LotteryType.Bingo).WithMessage("Максимальное значение шара в бинго должно быть больше 0.");
+            if (command.Type == LotteryType.Bingo)
+            {
+                // Для Бинго проверяем, что условие не больше MaxBallValue
+                return (tier.RuleType == PrizeTierRuleType.ClosedAtBall || tier.RuleType == PrizeTierRuleType.Jackpot) && 
+                       tier.ConditionValue <= (command.MaxBallValue ?? 0);
+            }
 
-        RuleFor(x => x.JackpotThreshold)
-            .GreaterThan(0).When(x => x.Type == LotteryType.Bingo).WithMessage("Порог джекпота в бинго должен быть больше 0.");
+            return true;
+        })
+        .WithMessage((command, tier) => command.Type == LotteryType.K_Out_Of_N 
+            ? $"Для {command.Name} условие ({tier.ConditionValue}) не может быть больше K ({command.K})."
+            : $"Для {command.Name} номер шара ({tier.ConditionValue}) не может превышать максимум ({command.MaxBallValue}).");
     }
 }

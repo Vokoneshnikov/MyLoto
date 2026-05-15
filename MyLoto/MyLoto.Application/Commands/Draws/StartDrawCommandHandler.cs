@@ -42,6 +42,10 @@ public class StartDrawCommandHandler : IRequestHandler<StartDrawCommand, Result<
         var draw = await _drawRepository.GetByIdAsync(request.DrawId, ct);
         if (draw == null) return Result<Unit>.Failure(new Error("Draw.NotFound", "Тираж не найден"));
 
+        if (draw.Status == DrawStatus.InProgress)
+        {
+            return await _mediator.Send(new CheckPrizesCommand(draw.Id), ct);
+        }
         var lottery = await _lotteryRepository.GetByIdAsync(draw.LotteryId, ct);
         if (lottery == null) return Result<Unit>.Failure(new Error("Lottery.NotFound", "Лотерея не найдена"));
 

@@ -1,8 +1,8 @@
-﻿using MediatR;
+﻿using FluentValidation;
+using MediatR;
 using MyLoto.Application.Abstractions;
 using MyLoto.Application.Abstractions.Repositories;
 using MyLoto.Application.Common;
-using FluentValidation;
 using MyLoto.Domain.Entities;
 using MyLoto.Domain.Enums;
 
@@ -26,64 +26,58 @@ public class CreateLotteryCommandHandler : IRequestHandler<CreateLotteryCommand,
 
     public async Task<Result<long>> Handle(CreateLotteryCommand request, CancellationToken ct)
     {
-        // Валидация данных с использованием FluentValidation
         var validationResult = await _validator.ValidateAsync(request, ct);
         if (!validationResult.IsValid)
         {
-            var firstError = validationResult.Errors.First();
-            return Result<long>.Failure(new Error(firstError.PropertyName, firstError.ErrorMessage)); 
+            return Result<long>.Failure(new Error("Validation.Error", validationResult.Errors.First().ErrorMessage)); 
         }
 
-        Lottery lottery;
+        Lottery lottery = request.Type switch
+        {
+            LotteryType.K_Out_Of_N => CreateKOutOfN(request),
+            LotteryType.Bingo => CreateBingo(request),
+            _ => throw new NotImplementedException()
+        };
 
-        if (request.Type == LotteryType.K_Out_Of_N)
+        // Мапим DTO на сущности PrizeTier
+        lottery.PrizeTiers = request.PrizeTiers.Select(dto => new PrizeTier
         {
-            if (!request.K.HasValue || !request.N.HasValue)
-            {
-                return Result<long>.Failure(new Error("Lottery.InvalidConfig", "K и N должны быть указаны для лотереи типа K из N"));
-            }
-            
-            lottery = new KOutOfNLottery
-            {
-                Name = request.Name,
-                Description = request.Description,
-                TicketPrice = request.TicketPrice,
-                Type = LotteryType.K_Out_Of_N,
-                NumbersToChoose = request.K.Value,
-                AccumulatedJackpot = request.JackpotValue,
-                MaxNumber = request.N.Value,
-                IsPaused = request.IsPaused
-            };
-        }
-        else if (request.Type == LotteryType.Bingo)
-        {
-            if (!request.Rows.HasValue || !request.Columns.HasValue || 
-                !request.MaxBallValue.HasValue || !request.JackpotThreshold.HasValue)
-            {
-                return Result<long>.Failure(new Error("Lottery.InvalidConfig", "Для лотереи типа Bingo должны быть указаны Rows, Columns, MaxBallValue и JackpotThreshold"));
-            }
-            lottery = new BingoLottery
-            {
-                Name = request.Name,
-                Description = request.Description,
-                TicketPrice = request.TicketPrice,
-                Type = LotteryType.Bingo,
-                AccumulatedJackpot = request.JackpotValue,
-                Rows = request.Rows.Value,
-                Columns = request.Columns.Value,
-                MaxBallValue = request.MaxBallValue.Value,
-                JackpotThreshold = request.JackpotThreshold.Value,
-                IsPaused = request.IsPaused
-            };
-        }
-        else
-        {
-            return Result<long>.Failure(new Error("Lottery.InvalidType", "Тип лотереи не поддерживается"));
-        }
+            RuleType = dto.RuleType,
+            ConditionValue = dto.ConditionValue,
+            RewardMultiplier = dto.RewardMultiplier
+        }).ToList();
 
         await _lotteryRepository.AddAsync(lottery, ct);
         await _unitOfWork.SaveChangesAsync(ct);
 
         return Result<long>.Success(lottery.Id);
     }
+
+    private KOutOfNLottery CreateKOutOfN(CreateLotteryCommand r) => new()
+    {
+        Name = r.Name,
+        Description = r.Description,
+        TicketPrice = r.TicketPrice,
+        TicketSalesDuration = r.TicketSalesDuration,
+        DrawProcessingDuration = r.DrawProcessingDuration,
+        NumbersToChoose = r.K!.Value,
+        MaxNumber = r.N!.Value,
+        AccumulatedJackpot = r.JackpotValue,
+        IsPaused = r.IsPaused
+    };
+
+    private BingoLottery CreateBingo(CreateLotteryCommand r) => new()
+    {
+        Name = r.Name,
+        Description = r.Description,
+        TicketPrice = r.TicketPrice,
+        TicketSalesDuration = r.TicketSalesDuration,
+        DrawProcessingDuration = r.DrawProcessingDuration,
+        Rows = r.Rows!.Value,
+        Columns = r.Columns!.Value,
+        MaxBallValue = r.MaxBallValue!.Value,
+        JackpotThreshold = r.JackpotThreshold!.Value,
+        AccumulatedJackpot = r.JackpotValue,
+        IsPaused = r.IsPaused
+    };
 }

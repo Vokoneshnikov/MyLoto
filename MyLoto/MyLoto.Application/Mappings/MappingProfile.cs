@@ -79,5 +79,29 @@ public class MappingProfile : Profile
             .ForMember(dest => dest.TicketPrice, opt => opt.MapFrom(src => src.Lottery.TicketPrice))
             .ForMember(dest => dest.Jackpot, opt => opt.MapFrom(src => src.Lottery.AccumulatedJackpot))
             .ForMember(dest => dest.SalesEndTime, opt => opt.MapFrom(src => src.ScheduledStartTime)); 
+        
+        CreateMap<Draw, DrawDto>()
+            .ForMember(dest => dest.LotteryName, opt => opt.MapFrom(src => src.Lottery.Name))
+            .ForMember(dest => dest.TicketPrice, opt => opt.MapFrom(src => src.Lottery.TicketPrice))
+            .ForMember(dest => dest.Jackpot, opt => opt.MapFrom(src => src.Lottery.AccumulatedJackpot))
+            .ForMember(dest => dest.SalesEndTime, opt => opt.MapFrom(src => src.ScheduledStartTime))
+    
+            // Используем as и тернарный оператор (это деревья выражений понимают)
+            .ForMember(dest => dest.LotteryType, opt => opt.MapFrom(src => 
+                (src.Lottery as BingoLottery) != null ? "Bingo" : "KOutOfN"))
+
+            // Мапим поля KOutOfN
+            .ForMember(dest => dest.NumbersToChoose, opt => opt.MapFrom(src => 
+                (src.Lottery as KOutOfNLottery) != null ? (int?)((KOutOfNLottery)src.Lottery).NumbersToChoose : null))
+            .ForMember(dest => dest.MaxNumber, opt => opt.MapFrom(src => 
+                (src.Lottery as KOutOfNLottery) != null ? (int?)((KOutOfNLottery)src.Lottery).MaxNumber : null))
+
+            // Мапим поля Bingo
+            .ForMember(dest => dest.Rows, opt => opt.MapFrom(src => 
+                (src.Lottery as BingoLottery) != null ? (int?)((BingoLottery)src.Lottery).Rows : null))
+            .ForMember(dest => dest.Columns, opt => opt.MapFrom(src => 
+                (src.Lottery as BingoLottery) != null ? (int?)((BingoLottery)src.Lottery).Columns : null))
+            .ForMember(dest => dest.MaxBallValue, opt => opt.MapFrom(src => 
+                (src.Lottery as BingoLottery) != null ? (int?)((BingoLottery)src.Lottery).MaxBallValue : null));
     }
 }

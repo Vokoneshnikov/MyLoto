@@ -3,6 +3,8 @@ using MyLoto.Application.Abstractions;
 using MyLoto.Application.Abstractions.Repositories;
 using MyLoto.Application.Common;
 using FluentValidation;
+using Hangfire;
+using MyLoto.Application.Common.BackgroundJobs;
 using MyLoto.Domain.Entities;
 using MyLoto.Domain.Enums;
 
@@ -42,11 +44,16 @@ public class CreateDrawCommandHandler : IRequestHandler<CreateDrawCommand, Resul
         if (lottery == null)
             return Result<long>.Failure(new Error("Lottery.NotFound", "Лотерея не найдена"));
 
+        if (lottery.IsPaused)
+            return Result<long>.Failure(new Error("Lottery.Paused", "Создание тиражей приостановлено"));
+        
         // 2. Создаем сущность Draw согласно твоей модели
+        var scheduledStartTime = DateTime.UtcNow.Add(lottery.TicketSalesDuration);
+        
         var draw = new Draw
         {
             LotteryId = lottery.Id,
-            ScheduledStartTime = request.EndDate,
+            ScheduledStartTime = scheduledStartTime,
             Status = DrawStatus.Pending,
             TotalSalesAmount = 0,
             WinningNumbers = new List<WinningNumber>(),
@@ -58,6 +65,11 @@ public class CreateDrawCommandHandler : IRequestHandler<CreateDrawCommand, Resul
 
         // 4. Сохраняем изменения
         await _unitOfWork.SaveChangesAsync(ct);
+        
+        // 5. Планируем запуск тиража в Hangfire
+        BackgroundJob.Schedule<DrawJobsManager>(
+            x => x.TriggerStartDraw(draw.Id), 
+            scheduledStartTime);
 
         return Result<long>.Success(draw.Id);
     }

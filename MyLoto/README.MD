@@ -18,3 +18,12 @@ dotnet ef database update InitialCreate --project MyLoto.Infrastructure --startu
 ```
 dotnet run
 ```
+
+
+
+
+# Stripe CLI:
+
+'''
+stripe listen --forward-to https://127.0.0.1:7162/api/profile/stripe
+'''

@@ -13,19 +13,21 @@ public static class AuthEndpoints
         group.MapPost("/login", async (LoginCommand command, ISender mediator) =>
         {
             var result = await mediator.Send(command);
-            
+        
+            // Возвращаем только Value (AuthResponse), а не весь Result<AuthResponse>
             return result.IsSuccess 
-                ? Results.Ok(result) 
-                : Results.BadRequest(result);
+                ? Results.Ok(result.Value) 
+                : Results.BadRequest(result.Error);
         });
 
         group.MapPost("/register", async (RegisterCommand command, ISender mediator) =>
         {
             var result = await mediator.Send(command);
-            
+        
             return result.IsSuccess 
-                ? Results.Ok(result) 
-                : Results.BadRequest(result);
+                // ? Results.Ok(result.Value)
+                ? Results.Ok(result)
+                : Results.BadRequest(result.Error);
         });
     }
 }

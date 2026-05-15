@@ -1,4 +1,6 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Hangfire;
+using Hangfire.PostgreSql;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using MyLoto.Application.Abstractions;
@@ -27,6 +29,15 @@ public static class DependencyInjection
         });
 
         // === НОВОЕ: Регистрация репозиториев ===
+        services.AddHangfire(config => config
+            .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
+            .UseSimpleAssemblyNameTypeSerializer()
+            .UseRecommendedSerializerSettings()
+            .UsePostgreSqlStorage(options => 
+                options.UseNpgsqlConnection(configuration.GetConnectionString("DefaultConnection"))));
+
+        // Добавляем сервер обработки фоновых задач
+        services.AddHangfireServer();
         
         // Регистрируем UnitOfWork
         services.AddScoped<IUnitOfWork, UnitOfWork>();

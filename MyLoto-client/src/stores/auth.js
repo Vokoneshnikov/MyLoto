@@ -7,12 +7,21 @@ export const useAuthStore = defineStore('auth', {
   }),
   getters: {
     isLoggedIn: (state) => !!state.token,
-    balance: (state) => state.user?.balance || 0
+    balance: (state) => state.user?.balance || 0,
+    // НОВЫЙ ГЕТТЕР: проверяем, является ли пользователь админом
+    isAdmin: (state) => state.user?.role === 'Moderator'
   },
   actions: {
     setAuth(authData) {
       this.token = authData.token
-      this.user = { login: authData.login, balance: authData.balance }
+
+      // ДОБАВИЛИ СОХРАНЕНИЕ РОЛИ СЮДА
+      this.user = {
+        login: authData.login,
+        balance: authData.balance,
+        role: authData.role // Бэкенд должен присылать это поле!
+      }
+
       localStorage.setItem('token', authData.token)
       localStorage.setItem('user', JSON.stringify(this.user))
     },

@@ -1,7 +1,8 @@
 ﻿using MediatR;
 using MyLoto.Application.Commands.Lotteries;
 using MyLoto.Application.Queries.Lotteries;
-using MyLoto.WebAPI.Extensions; // Подключаем наши расширения
+using MyLoto.Domain.Enums;
+using MyLoto.WebAPI.Extensions;
 
 namespace MyLoto.WebAPI.Endpoints;
 
@@ -22,10 +23,12 @@ public static class LotteryEndpoints
             })
             .WithName("GetActiveLotteries");
         
-        group.MapPost("/", async (CreateLotteryCommand command, ISender mediator) =>
-        {
-            var result = await mediator.Send(command);
-            return result.ToProcessResult();
-        });
+        group.MapPost("/create", async (CreateLotteryCommand command, ISender mediator) =>
+            {
+                var result = await mediator.Send(command);
+                return result.ToProcessResult();
+            })
+            .WithName("CreateLottery")
+            .RequireAuthorization(policy => policy.RequireRole(UserRole.Moderator.ToString()));
     }
 }

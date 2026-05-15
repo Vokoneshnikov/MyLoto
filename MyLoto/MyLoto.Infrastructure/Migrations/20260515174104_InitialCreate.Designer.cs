@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace MyLoto.Infrastructure.Migrations
 {
     [DbContext(typeof(LotoDbContext))]
-    [Migration("20260508224308_InitialCreate")]
+    [Migration("20260515174104_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -117,6 +117,9 @@ namespace MyLoto.Infrastructure.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)");
 
+                    b.Property<TimeSpan>("DrawProcessingDuration")
+                        .HasColumnType("interval");
+
                     b.Property<bool>("IsPaused")
                         .HasColumnType("boolean");
 
@@ -128,6 +131,9 @@ namespace MyLoto.Infrastructure.Migrations
                     b.Property<decimal>("TicketPrice")
                         .HasPrecision(18, 2)
                         .HasColumnType("numeric(18,2)");
+
+                    b.Property<TimeSpan>("TicketSalesDuration")
+                        .HasColumnType("interval");
 
                     b.Property<string>("Type")
                         .IsRequired()

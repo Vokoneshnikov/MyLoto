@@ -51,7 +51,7 @@ const handleLogin = async () => {
   try {
     const data = await apiRequest('/auth/login', 'POST', form);
     auth.setAuth(data); // Сохраняем в Pinia и LocalStorage
-    router.push('/');
+    router.push('/profile');
   } catch (e) {
     error.value = e.message;
   } finally {

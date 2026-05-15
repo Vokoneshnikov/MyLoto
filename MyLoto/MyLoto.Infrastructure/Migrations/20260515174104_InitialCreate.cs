@@ -43,6 +43,8 @@ namespace MyLoto.Infrastructure.Migrations
                     Type = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
                     AccumulatedJackpot = table.Column<decimal>(type: "numeric(18,2)", precision: 18, scale: 2, nullable: false),
                     IsPaused = table.Column<bool>(type: "boolean", nullable: false),
+                    TicketSalesDuration = table.Column<TimeSpan>(type: "interval", nullable: false),
+                    DrawProcessingDuration = table.Column<TimeSpan>(type: "interval", nullable: false),
                     Rows = table.Column<int>(type: "integer", nullable: true),
                     Columns = table.Column<int>(type: "integer", nullable: true),
                     MaxBallValue = table.Column<int>(type: "integer", nullable: true),

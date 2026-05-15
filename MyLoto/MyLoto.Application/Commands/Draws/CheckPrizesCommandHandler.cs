@@ -26,7 +26,8 @@ public class CheckPrizesCommandHandler : IRequestHandler<CheckPrizesCommand, Res
         if (draw == null) return Result<Unit>.Failure(new Error("Draw.NotFound", "Тираж не найден"));
 
         draw.Status = DrawStatus.Checking;
-
+        await _unitOfWork.SaveChangesAsync(ct);
+        
         var drawnNumbers = draw.WinningNumbers
             .OrderBy(wn => wn.Order)
             .Select(wn => wn.Number)

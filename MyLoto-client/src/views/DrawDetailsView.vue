@@ -92,12 +92,12 @@ const loading = ref(true);
 const buying = ref(false);
 const selectedNumbers = ref([]);
 
-const maxRange = ref(45);
-const requiredCount = ref(6); // По умолчанию для 6 из 45
+// Инициализируем нулями, как ты и сказал
+const maxRange = ref(0);
+const requiredCount = ref(0);
 
 // Состояние: достигнут ли лимит выбора
 const isLimitReached = computed(() => selectedNumbers.value.length >= requiredCount.value);
-
 
 // Динамическое сообщение-подсказка
 const statusMessage = computed(() => {
@@ -108,22 +108,20 @@ const statusMessage = computed(() => {
 
 const fetchDrawDetails = async () => {
   try {
-    const activeDraws = await apiRequest('/draws/active');
-    draw.value = activeDraws.find(d => d.id == route.params.id);
+    // Обращаемся к конкретному тиражу напрямую
+    draw.value = await apiRequest(`/draws/${route.params.id}`);
 
-    // Логика настройки правил лотереи (в идеале тянуть из lotteryConfig)
-    if (draw.value?.lotteryName.includes('Бинго')) {
-      maxRange.value = 90;
-      requiredCount.value = 30;
-    } else if (draw.value?.lotteryName.includes('5 из 36')) {
-      maxRange.value = 36;
-      requiredCount.value = 5;
-    } else {
-      maxRange.value = 45;
-      requiredCount.value = 6;
+    // Определяем правила на основе данных от бэкенда
+    if (draw.value.lotteryType === 'Bingo') {
+      maxRange.value = draw.value.maxBallValue;
+      requiredCount.value = draw.value.rows * draw.value.columns;
+    } else if (draw.value.lotteryType === 'KOutOfN') {
+      maxRange.value = draw.value.maxNumber;
+      requiredCount.value = draw.value.numbersToChoose;
     }
   } catch (error) {
     console.error(error);
+    alert("Ошибка загрузки тиража: " + error.message);
   } finally {
     loading.value = false;
   }
@@ -157,7 +155,7 @@ const buyTicket = async () => {
       chosenNumbers: selectedNumbers.value
     });
     alert("Билет успешно куплен!");
-    router.push('/profile');
+    router.push('/home');
   } catch (error) {
     alert(error.message);
   } finally {

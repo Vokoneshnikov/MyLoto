@@ -10,6 +10,12 @@ public class LotteryConfiguration : IEntityTypeConfiguration<Lottery>
     public void Configure(EntityTypeBuilder<Lottery> builder)
     {
         builder.HasKey(l => l.Id);
+        
+        builder.Property(l => l.TicketSalesDuration)
+            .IsRequired();
+
+        builder.Property(l => l.DrawProcessingDuration)
+            .IsRequired();
 
         builder.Property(l => l.Name)
             .HasMaxLength(100)

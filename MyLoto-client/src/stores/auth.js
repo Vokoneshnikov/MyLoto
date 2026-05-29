@@ -8,18 +8,19 @@ export const useAuthStore = defineStore('auth', {
   getters: {
     isLoggedIn: (state) => !!state.token,
     balance: (state) => state.user?.balance || 0,
-    // НОВЫЙ ГЕТТЕР: проверяем, является ли пользователь админом
+
+    // Геттер читает поле role, которое мы теперь сохраняем
     isAdmin: (state) => state.user?.role === 'Moderator'
   },
   actions: {
     setAuth(authData) {
       this.token = authData.token
 
-      // ДОБАВИЛИ СОХРАНЕНИЕ РОЛИ СЮДА
+      // ИСПРАВЛЕНИЕ: Добавляем authData.role в объект user
       this.user = {
         login: authData.login,
         balance: authData.balance,
-        role: authData.role // Бэкенд должен присылать это поле!
+        role: authData.role // <-- Вот этого поля не хватало!
       }
 
       localStorage.setItem('token', authData.token)

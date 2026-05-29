@@ -59,6 +59,12 @@ const router = createRouter({
       path: '/profile',
       name: 'profile',
       component: ProfileView
+    },
+    {
+      path: '/admin/lotteries',
+      name: 'AdminLotteries',
+      component: () => import('@/views/AdminLotteriesView.vue'),
+      meta: { requiresAdmin: true }
     }
   ]
 })

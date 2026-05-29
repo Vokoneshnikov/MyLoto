@@ -5,4 +5,6 @@ using MyLoto.Domain.Entities;
 public interface ILotteryRepository : IRepository<Lottery>
 {
     Task<IReadOnlyList<Lottery>> GetActiveLotteriesAsync(CancellationToken cancellationToken = default);
+    
+    Task UpdateAsync(Lottery lottery, CancellationToken ct);
 }

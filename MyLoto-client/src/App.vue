@@ -2,14 +2,9 @@
 import { RouterLink, RouterView } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useRouter } from 'vue-router'
-import { computed } from 'vue' // Добавляем computed
 
 const auth = useAuthStore()
 const router = useRouter()
-
-// Проверяем роль пользователя.
-// Предполагаем, что в твоем User объекте есть поле role со значением 'Admin'
-const isAdmin = computed(() => auth.user?.role === 'Admin')
 
 const handleLogout = () => {
   auth.logout()
@@ -31,16 +26,16 @@ const handleLogout = () => {
             <RouterLink class="nav-link" to="/profile">Профиль</RouterLink>
           </li>
 
-          <li class="nav-item">
-            <RouterLink class="nav-link text-warning" to="/admin/lotteries/create">
-              ➕ Создать лотерею
+          <li class="nav-item" v-if="auth.isAdmin">
+            <RouterLink class="nav-link text-warning fw-bold" to="/admin/lotteries">
+              ⚙ Управление лотереями
             </RouterLink>
           </li>
         </ul>
 
         <div class="d-flex align-items-center" v-if="auth.isLoggedIn">
           <div class="d-flex flex-column align-items-end me-3">
-            <span class="text-light small opacity-75">{{ isAdmin ? 'Администратор' : 'Игрок' }}</span>
+            <span class="text-light small opacity-75">{{ auth.isAdmin ? 'Администратор' : 'Игрок' }}</span>
             <span class="text-light fw-bold">{{ auth.user?.login }}</span>
           </div>
           <button @click="handleLogout" class="btn btn-outline-danger btn-sm rounded-3">Выйти</button>
@@ -64,7 +59,6 @@ body {
   background-color: #f8f9fa;
 }
 
-/* Подсветим активную ссылку */
 .nav-link.router-link-active {
   color: #fff !important;
   font-weight: 600;

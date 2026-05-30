@@ -11,11 +11,11 @@ using MyLoto.Infrastructure;
 using MyLoto.Infrastructure.Auth;
 using MyLoto.Infrastructure.Persistence;
 using MyLoto.WebAPI.Endpoints;
+using MyLoto.WebAPI.Hubs;          // Добавлено для Хаба
 using MyLoto.WebAPI.Middlewares;
-using MyLoto.WebAPI.Services;
+using MyLoto.WebAPI.Services;      // Добавлено для DrawNotificationService
 using Serilog;
 
-// 1. Инициализация статического логгера для раннего старта
 Log.Logger = new LoggerConfiguration()
     .WriteTo.Console()
     .CreateBootstrapLogger();
@@ -26,7 +26,6 @@ try
 
     var builder = WebApplication.CreateBuilder(args);
 
-    // 2. Настраиваем Serilog как основной логгер приложения
     builder.Host.UseSerilog((context, services, configuration) => configuration
         .ReadFrom.Configuration(context.Configuration)
         .ReadFrom.Services(services)
@@ -34,23 +33,12 @@ try
         .WriteTo.Console(outputTemplate: 
             "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}"));
 
-    // --- РЕГИСТРАЦИЯ СЕРВИСОВ ---
-
     builder.Services.AddAuthorization();
-    
-    // Нужно для того, чтобы Swagger видел Minimal APIs (наши Endpoints)
-    builder.Services.AddEndpointsApiExplorer();
-    
     builder.Services.AddEndpointsApiExplorer();
     
     builder.Services.AddSwaggerGen(options =>
     {
-        options.SwaggerDoc("v1", new OpenApiInfo
-        {
-            Title = "MyLoto API",
-            Version = "v1"
-        });
-
+        options.SwaggerDoc("v1", new OpenApiInfo { Title = "MyLoto API", Version = "v1" });
         options.AddSecurityDefinition(JwtBearerDefaults.AuthenticationScheme, new OpenApiSecurityScheme
         {
             Type = SecuritySchemeType.Http,
@@ -60,7 +48,6 @@ try
             In = ParameterLocation.Header,
             Description = "Введите JWT токен в формате: Bearer {token}"
         });
-
         options.AddSecurityRequirement(document => new OpenApiSecurityRequirement
         {
             [new OpenApiSecuritySchemeReference(
@@ -74,9 +61,11 @@ try
     builder.Services.AddInfrastructure(builder.Configuration); // Слой инфраструктуры (БД)
     builder.Services.AddApplication();                        // Слой логики (MediatR, Mapper)
     builder.Services.AddAutoMapper(typeof(MappingProfile).Assembly);
-    // builder.Services.AddControllers();                         // Поддержка классических контроллеров
 
-    // Регистрация JWT провайдера
+    // --- РЕГИСТРАЦИЯ SIGNALR И СЕРВИСА УВЕДОМЛЕНИЙ ---
+    builder.Services.AddSignalR();
+    builder.Services.AddTransient<IDrawNotificationService, DrawNotificationService>();
+
     builder.Services.AddScoped<IJwtProvider, JwtProvider>();
     
     builder.Services.AddAuthentication(options =>
@@ -103,21 +92,20 @@ try
     builder.Services.AddHttpContextAccessor();
     builder.Services.AddScoped<IUserContext, UserContext>();
     
+    // --- ОБНОВЛЕННЫЙ CORS (ВКЛЮЧЕНЫ CREDENTIALS ДЛЯ SIGNALR) ---
     builder.Services.AddCors(options => {
         options.AddDefaultPolicy(policy => {
             policy.WithOrigins("http://localhost:5173")
                 .AllowAnyHeader()
-                .AllowAnyMethod();
+                .AllowAnyMethod()
+                .AllowCredentials(); // <-- КРИТИЧНО ВАЖНО ДЛЯ WEBSOCKETS!
         });
     });
     
     var app = builder.Build();
 
     app.UseHangfireDashboard();
-    
     app.UseMiddleware<ExceptionHandlingMiddleware>();
-    
-    // Логирование каждого входящего HTTP-запроса
     app.UseSerilogRequestLogging(); 
     
     if (app.Environment.IsDevelopment())
@@ -135,13 +123,13 @@ try
     app.UseAuthentication();
     app.UseAuthorization();
     
+    app.MapHub<DrawHub>("/hubs/draw");
     app.MapAuthEndpoints();
     app.MapLotteryEndpoints();
     app.MapTicketEndpoints();
     app.MapDrawEndpoints();
     app.MapUserEndpoints();
 
-    // --- ИНИЦИАЛИЗАЦИЯ БАЗЫ ДАННЫХ (SEEDING) ---
     using (var scope = app.Services.CreateScope())
     {
         var services = scope.ServiceProvider;

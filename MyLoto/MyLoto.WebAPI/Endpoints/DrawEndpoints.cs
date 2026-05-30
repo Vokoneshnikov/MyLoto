@@ -18,6 +18,7 @@ public static class DrawEndpoints
             var result = await mediator.Send(command);
             return result.ToProcessResult();
         });
+        
         group.MapGet("/{lotteryId:long}/history", async (long lotteryId, ISender mediator) =>
             {
                 var result = await mediator.Send(new GetDrawHistoryQuery(lotteryId));
@@ -25,9 +26,13 @@ public static class DrawEndpoints
             })
             .WithName("GetDrawHistory");
         
-        // Список активных тиражей
+        // Список активных тиражей (доступных для покупки)
         group.MapGet("/active", async (ISender mediator) =>
             (await mediator.Send(new GetActiveDrawsQuery())).ToProcessResult());
+
+        // 🔥 ДОБАВЛЕНО: Список тиражей, которые идут в эфире прямо сейчас
+        group.MapGet("/live", async (ISender mediator) =>
+            (await mediator.Send(new GetLiveDrawsQuery())).ToProcessResult());
 
         // Инфо по конкретному тиражу
         group.MapGet("/{id:long}", async (long id, ISender mediator) =>
@@ -46,5 +51,14 @@ public static class DrawEndpoints
                 return result.ToProcessResult();
             })
             .WithName("CompleteDraw");
+        
+        app.MapGet("api/draws/{id}/live-status", async (long id, IMediator mediator) =>
+        {
+            var result = await mediator.Send(new GetDrawLiveStatusQuery(id));
+    
+            return result.IsSuccess 
+                ? Results.Ok(result.Value) 
+                : Results.BadRequest(result.Error);
+        });
     }
 }

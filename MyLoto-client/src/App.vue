@@ -25,10 +25,15 @@ const handleLogout = () => {
           <li class="nav-item">
             <RouterLink class="nav-link" to="/profile">Профиль</RouterLink>
           </li>
+          <li class="nav-item">
+            <RouterLink class="nav-link d-flex align-items-center gap-1 text-danger-hover" to="/live">
+              <span class="live-dot me-1"></span> Прямые трансляции
+            </RouterLink>
+          </li>
 
           <li class="nav-item" v-if="auth.isAdmin">
-            <RouterLink class="nav-link text-warning fw-bold" to="/admin/lotteries">
-              ⚙ Управление лотереями
+            <RouterLink class="nav-link" to="/admin/lotteries">
+              Управление лотереями
             </RouterLink>
           </li>
         </ul>
@@ -62,5 +67,21 @@ body {
 .nav-link.router-link-active {
   color: #fff !important;
   font-weight: 600;
+}
+
+/* Пульсирующая красная точка для Live в шапке */
+.live-dot {
+  width: 8px;
+  height: 8px;
+  background-color: #dc3545;
+  border-radius: 50%;
+  display: inline-block;
+  animation: blinker 1.5s linear infinite;
+}
+
+@keyframes blinker {
+  50% {
+    opacity: 0;
+  }
 }
 </style>

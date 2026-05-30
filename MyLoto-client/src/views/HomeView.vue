@@ -21,6 +21,12 @@
     </div>
 
     <div v-else class="row g-4">
+      <div v-if="draws.length === 0" class="col-12 text-center py-5">
+        <div class="text-muted mb-3 fs-1">🎟️</div>
+        <h4 class="fw-bold text-secondary">Нет доступных тиражей</h4>
+        <p class="text-muted">Новые игры появятся совсем скоро!</p>
+      </div>
+
       <div v-for="draw in draws" :key="draw.id" class="col-12 col-md-6 col-lg-4">
         <div class="card h-100 border-0 shadow-sm hover-card rounded-4 overflow-hidden">
           <div :class="isBingo(draw.lotteryName) ? 'bg-primary' : 'bg-warning'" style="height: 6px;"></div>
@@ -50,12 +56,14 @@
               <span>До конца продаж: {{ formatDate(draw.salesEndTime) }}</span>
             </div>
 
-            <router-link
-              :to="{ name: 'DrawDetails', params: { id: draw.id } }"
-              class="btn btn-dark w-100 py-3 rounded-3 fw-bold mt-auto"
-            >
-              Участвовать
-            </router-link>
+            <div class="mt-auto d-flex flex-column gap-2">
+              <router-link
+                :to="{ name: 'DrawDetails', params: { id: draw.id } }"
+                class="btn btn-dark w-100 py-3 rounded-3 fw-bold"
+              >
+                Участвовать
+              </router-link>
+            </div>
           </div>
         </div>
       </div>
@@ -87,3 +95,13 @@ const formatDate = (date) => new Date(date).toLocaleString('ru-RU', { day: 'nume
 
 onMounted(fetchDraws);
 </script>
+
+<style scoped>
+.hover-card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.hover-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 20px rgba(0,0,0,0.08) !important;
+}
+</style>

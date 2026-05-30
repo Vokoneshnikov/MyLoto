@@ -43,4 +43,19 @@ public class DrawRepository : Repository<Draw>, IDrawRepository
             .AsSplitQuery() // Помогает избежать гигантских джоинов
             .FirstOrDefaultAsync(d => d.Id == id, ct);
     }
+    public async Task<Draw?> GetDrawForBroadcastAsync(long id, CancellationToken ct)
+    {
+        return await Context.Draws
+            .Include(d => d.Lottery)
+            .Include(d => d.WinningNumbers)
+            .FirstOrDefaultAsync(d => d.Id == id, ct);
+    }
+    public async Task<IReadOnlyList<Draw>> GetLiveDrawsAsync(CancellationToken ct)
+    {
+        return await Context.Draws
+            .AsNoTracking()
+            .Include(d => d.Lottery)
+            .Where(d => d.Status == DrawStatus.InProgress)
+            .ToListAsync(ct);
+    }
 }

@@ -1,8 +1,10 @@
 ﻿using FluentValidation;
+using Hangfire;
 using MediatR;
 using MyLoto.Application.Abstractions;
 using MyLoto.Application.Abstractions.Repositories;
 using MyLoto.Application.Common;
+using MyLoto.Application.Common.BackgroundJobs;
 using MyLoto.Domain.Entities;
 using MyLoto.Domain.Enums;
 
@@ -13,15 +15,18 @@ public class CreateLotteryCommandHandler : IRequestHandler<CreateLotteryCommand,
     private readonly ILotteryRepository _lotteryRepository;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IValidator<CreateLotteryCommand> _validator;
+    private readonly IBackgroundJobClient _backgroundJobClient;
 
     public CreateLotteryCommandHandler(
         ILotteryRepository lotteryRepository,
         IUnitOfWork unitOfWork,
-        IValidator<CreateLotteryCommand> validator)
+        IValidator<CreateLotteryCommand> validator,
+        IBackgroundJobClient backgroundJobClient)
     {
         _lotteryRepository = lotteryRepository;
         _unitOfWork = unitOfWork;
         _validator = validator;
+        _backgroundJobClient = backgroundJobClient;
     }
 
     public async Task<Result<long>> Handle(CreateLotteryCommand request, CancellationToken ct)
@@ -50,6 +55,13 @@ public class CreateLotteryCommandHandler : IRequestHandler<CreateLotteryCommand,
         await _lotteryRepository.AddAsync(lottery, ct);
         await _unitOfWork.SaveChangesAsync(ct);
 
+        // --- ИНТЕГРАЦИЯ С HANGFIRE ---
+        // Если лотерея создается не на паузе, запускаем цикл создания тиражей
+        if (!lottery.IsPaused)
+        {
+            _backgroundJobClient.Enqueue<DrawJobsManager>(x => x.TriggerCreateDraw(lottery.Id));
+        }
+        
         return Result<long>.Success(lottery.Id);
     }
 

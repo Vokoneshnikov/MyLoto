@@ -7,11 +7,6 @@
         <NoWarn>NU1903</NoWarn>
     </PropertyGroup>
 
-    <ItemGroup>
-      <Folder Include="Hubs\" />
-      <Folder Include="Middleware\" />
-    </ItemGroup>
-
     
     <ItemGroup>
       <PackageReference Include="Hangfire.PostgreSql" Version="1.21.1" />

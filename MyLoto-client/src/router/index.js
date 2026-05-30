@@ -9,6 +9,7 @@ import EditProfileView from '@/views/EditProfileView.vue'
 import TicketDetailsView from '@/views/TicketDetailsView.vue'
 import DepositView from '@/views/DepositView.vue'
 import CreateLotteryView from '@/views/CreateLotteryView.vue'
+import LiveDrawsListView from '@/views/LiveDrawsListView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -28,6 +29,13 @@ const router = createRouter({
       path: '/draw/:id',
       name: 'DrawDetails',
       component: () => import('../views/DrawDetailsView.vue'),
+      props: true
+    },
+    // --- НОВЫЙ МАРШРУТ ДЛЯ ТРАНСЛЯЦИИ ТИРАЖА ---
+    {
+      path: '/draw/:id/live',
+      name: 'DrawLive',
+      component: () => import('../views/DrawLiveView.vue'), // Убедись, что файл лежит в src/views/DrawLive.vue
       props: true
     },
     {
@@ -59,6 +67,11 @@ const router = createRouter({
       path: '/profile',
       name: 'profile',
       component: ProfileView
+    },
+    {
+      path: '/live',
+      name: 'live',
+      component: LiveDrawsListView
     },
     {
       path: '/admin/lotteries',

@@ -33,8 +33,8 @@ import { useAuthStore } from '@/stores/auth';
 const route = useRoute();
 const auth = useAuthStore();
 
-// Получаем ID тиража из URL (например, /draws/5/live)
-const drawId = route.params.id;
+// Гарантируем, что ID тиража всегда является числом
+const drawId = Number(route.params.id);
 
 const status = ref('Pending');
 const drawnNumbers = ref([]);
@@ -44,7 +44,6 @@ let connection = null;
 const loadInitialStatus = async () => {
   try {
     const response = await apiRequest(`/draws/${drawId}/live-status`, 'GET');
-    // Благодаря твоему apiRequest, здесь response — это сразу объект с Value
     status.value = response.status;
     drawnNumbers.value = response.drawnNumbers || [];
   } catch (error) {
@@ -54,27 +53,25 @@ const loadInitialStatus = async () => {
 
 // 2. Подключение к SignalR
 const connectToSignalR = async () => {
-  // Обрати внимание на URL — он должен вести на твой хаб
   connection = new signalR.HubConnectionBuilder()
     .withUrl('https://localhost:7162/hubs/draw', {
-      // Передаем токен на случай, если твой Hub закрыт атрибутом [Authorize]
       accessTokenFactory: () => auth.token
     })
     .withAutomaticReconnect()
     .build();
 
-  // --- ИСПРАВЛЕННЫЙ БЛОК ПРИЕМА SignalR ---
   connection.on('ReceiveNumber', (payload) => {
     console.log('--- ПОЛУЧЕН СИГНАЛ ---');
     console.log('Данные от бэкенда (сырые):', payload);
 
-    // Достаем число. SignalR JS клиент обычно делает camelCase!
-    // Проверяем payload.number (с маленькой буквы)
     const incomingNumber = payload.Number || payload.number;
 
     if (incomingNumber) {
-      console.log(`Добавляем шар №${incomingNumber} на экран`);
-      drawnNumbers.value.push(incomingNumber);
+      // ИСПРАВЛЕНО: Защита от дублирования шаров на стыке HTTP и WebSockets
+      if (!drawnNumbers.value.includes(incomingNumber)) {
+        console.log(`Добавляем шар №${incomingNumber} на экран`);
+        drawnNumbers.value.push(incomingNumber);
+      }
       status.value = 'InProgress';
     } else {
       console.error('Пришел сигнал "ReceiveNumber", но в нем нет числа!', payload);
@@ -85,25 +82,25 @@ const connectToSignalR = async () => {
     await connection.start();
     console.log('Подключено к SignalR хабу');
 
-    // Добавляемся в группу конкретного тиража
-    await connection.invoke('JoinDrawGroup', Number(route.params.id));
+    // Передаем уже приведенное к числу значение drawId
+    await connection.invoke('JoinDrawGroup', drawId);
   } catch (error) {
     console.error('Ошибка подключения к SignalR:', error);
   }
 };
 
-// Жизненный цикл: при входе на страницу
 onMounted(async () => {
   await loadInitialStatus();
-  // Если тираж еще не завершен, открываем сокет
+  // Если тираж еще не завершен, открываем сокет (для состояний Pending и InProgress)
   if (status.value !== 'Completed') {
     await connectToSignalR();
   }
 });
 
-// Жизненный цикл: при уходе со страницы
 onBeforeUnmount(() => {
   if (connection) {
+    // Безопасное отключение: предотвращает утечки памяти
+    connection.invoke('LeaveDrawGroup', drawId).catch(() => {});
     connection.stop();
   }
 });
@@ -152,7 +149,6 @@ onBeforeUnmount(() => {
   box-shadow: 0 4px 8px rgba(0,0,0,0.2);
 }
 
-/* Анимация появления бочонка (Vue Transition) */
 .ball-enter-active,
 .ball-leave-active {
   transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);

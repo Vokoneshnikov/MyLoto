@@ -39,11 +39,12 @@ public class GetDrawLiveStatusQueryHandler : IRequestHandler<GetDrawLiveStatusQu
                 new DrawLiveStatusResponse("Completed", allNumbers));
         }
 
-        // 3. Если тираж в процессе (InProgress) — считаем срез по времени
-        var totalSecondsElapsed = (DateTime.UtcNow - draw.ScheduledStartTime).TotalSeconds;
+        // 3. Если тираж в процессе (InProgress) — считаем срез строго от фактического старта
+        var startTime = draw.UpdatedAt ?? DateTime.UtcNow;
+        var totalSecondsElapsed = (DateTime.UtcNow - startTime).TotalSeconds;
         
-        // Сколько бочонков должно было выпасть (каждые 4 секунды)
-        int ballsDroppedCount = (int)Math.Floor(totalSecondsElapsed / 4);
+        // Сколько бочонков успело улететь в эфир (каждые 4 секунды)
+        int ballsDroppedCount = Math.Max(0, (int)Math.Floor(totalSecondsElapsed / 4) + 1);
 
         var alreadyDrawnNumbers = draw.WinningNumbers
             .OrderBy(n => n.Order)

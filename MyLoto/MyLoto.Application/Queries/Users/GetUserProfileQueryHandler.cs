@@ -3,7 +3,8 @@ using MediatR;
 using MyLoto.Application.Abstractions.Contexts;
 using MyLoto.Application.Abstractions.Repositories;
 using MyLoto.Application.Common;
-using MyLoto.Application.Queries.Users;
+
+namespace MyLoto.Application.Queries.Users;
 
 public class GetUserProfileQueryHandler : IRequestHandler<GetUserProfileQuery, Result<UserProfileDto>>
 {
@@ -20,10 +21,12 @@ public class GetUserProfileQueryHandler : IRequestHandler<GetUserProfileQuery, R
 
     public async Task<Result<UserProfileDto>> Handle(GetUserProfileQuery request, CancellationToken ct)
     {
+        // Берем ID текущего авторизованного пользователя из контекста
         var currentUserId = _userContext.UserId;
 
         var user = await _userRepository.GetByIdWithTicketsAsync(currentUserId, ct);
 
+        // Бизнес-чек: если профиля нет в БД, возвращаем доменную ошибку
         if (user == null)
             return Result<UserProfileDto>.Failure(new Error("User.NotFound", "Профиль не найден"));
 

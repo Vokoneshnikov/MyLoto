@@ -1,14 +1,13 @@
 ﻿using FluentValidation;
 using MyLoto.Application.Commands.Users;
 
-namespace MyLoto.Application.Validators.Users
+namespace MyLoto.Application.Validators;
+
+public class DepositMoneyCommandValidator : AbstractValidator<DepositMoneyCommand>
 {
-    public class DepositMoneyCommandValidator : AbstractValidator<DepositMoneyCommand>
+    public DepositMoneyCommandValidator()
     {
-        public DepositMoneyCommandValidator()
-        {
-            RuleFor(x => x.Amount)
-                .GreaterThan(0).WithMessage("Сумма пополнения должна быть больше 0.");
-        }
+        RuleFor(x => x.Amount)
+            .GreaterThan(0).WithMessage("Сумма пополнения должна быть больше 0.");
     }
 }

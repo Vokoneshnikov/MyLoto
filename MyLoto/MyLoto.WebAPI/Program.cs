@@ -117,7 +117,31 @@ try
             options.RoutePrefix = "swagger";
         });
     }
-    app.UseHttpsRedirection();
+    // --- МИДЛВЕР ДЛЯ ЗАЩИТЫ ОТ XSS И КЛИКДЖЕКИНГА (SECURITY HEADERS) ---
+    app.Use(async (context, next) =>
+    {
+        // Запрещаем открывать наш сайт во фреймах на чужих ресурсах
+        context.Response.Headers.Append("X-Frame-Options", "DENY");
+    
+        // Защита от MIME-sniffing (запрещаем браузеру исполнять файлы, если тип не совпадает)
+        context.Response.Headers.Append("X-Content-Type-Options", "nosniff");
+    
+        // Ограничиваем передачу реферера
+        context.Response.Headers.Append("Referrer-Policy", "strict-origin-when-cross-origin");
+    
+        // Включаем базовую политику безопасности контента (CSP)
+        // Разрешаем скрипты и коннекты только со своего домена + локального фронтенда (включая WebSockets для SignalR)
+        context.Response.Headers.Append("Content-Security-Policy", 
+            "default-src 'self'; " +
+            "script-src 'self' 'unsafe-inline' 'unsafe-eval'; " + // unsafe-inline нужен для работы некоторых фич Vue в dev-режиме
+            "style-src 'self' 'unsafe-inline'; " +
+            "connect-src 'self' http://localhost:5173 ws://localhost:5173 http://localhost:5000 ws://localhost:5000; " + // Настрой порты под свои
+            "img-src 'self' data:;");
+
+        await next();
+    });
+
+    app.UseHttpsRedirection(); // Дальше идет твой стандартный код...
     
     app.UseCors();
     app.UseAuthentication();

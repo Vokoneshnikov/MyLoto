@@ -3,7 +3,6 @@ using MyLoto.Application.Commands.Users;
 
 namespace MyLoto.Application.Validators;
 
-
 public class UpdateProfileInfoCommandValidator : AbstractValidator<UpdateProfileInfoCommand>
 {
     public UpdateProfileInfoCommandValidator()

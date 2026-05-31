@@ -1,5 +1,4 @@
 ﻿using AutoMapper;
-using FluentValidation;
 using MediatR;
 using MyLoto.Application.Abstractions;
 using MyLoto.Application.Abstractions.Contexts;
@@ -19,7 +18,6 @@ public class BuyTicketCommandHandler : IRequestHandler<BuyTicketCommand, Result<
     private readonly ITicketRepository _ticketRepository;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IMapper _mapper;
-    private readonly IValidator<BuyTicketCommand> _validator; 
     private readonly IUserContext _userContext;
 
     public BuyTicketCommandHandler(
@@ -29,8 +27,7 @@ public class BuyTicketCommandHandler : IRequestHandler<BuyTicketCommand, Result<
         ITicketRepository ticketRepository,
         IUnitOfWork unitOfWork,
         IMapper mapper,
-        IValidator<BuyTicketCommand> validator,
-        IUserContext userContext) // Вставляем валидатор через DI
+        IUserContext userContext)
     {
         _userRepository = userRepository;
         _drawRepository = drawRepository;
@@ -38,21 +35,14 @@ public class BuyTicketCommandHandler : IRequestHandler<BuyTicketCommand, Result<
         _ticketRepository = ticketRepository;
         _unitOfWork = unitOfWork;
         _mapper = mapper;
-        _validator = validator;
         _userContext = userContext;
     }
 
     public async Task<Result<TicketDto>> Handle(BuyTicketCommand request, CancellationToken ct)
     {
-        // Проверяем валидацию
         var userId = _userContext.UserId;
-        var validationResult = await _validator.ValidateAsync(request, ct);
-        if (!validationResult.IsValid)
-        {
-            var firstError = validationResult.Errors.First();
-            return Result<TicketDto>.Failure(new Error(firstError.PropertyName, firstError.ErrorMessage)); 
-        }
 
+        // Бизнес-проверка 1: Существование пользователя
         var user = await _userRepository.GetByIdAsync(userId, ct);
         if (user is null)
         {
@@ -61,6 +51,7 @@ public class BuyTicketCommandHandler : IRequestHandler<BuyTicketCommand, Result<
                 "Пользователь не найден"));
         }
 
+        // Бизнес-проверка 2: Возрастное ограничение
         if (user.Age < 18)
         {
             return Result<TicketDto>.Failure(new Error(
@@ -68,6 +59,7 @@ public class BuyTicketCommandHandler : IRequestHandler<BuyTicketCommand, Result<
                 "Покупка билетов доступна только пользователям старше 18 лет"));
         }
 
+        // Бизнес-проверка 3: Существование тиража
         var draw = await _drawRepository.GetByIdAsync(request.DrawId, ct);
         if (draw is null)
         {
@@ -76,6 +68,7 @@ public class BuyTicketCommandHandler : IRequestHandler<BuyTicketCommand, Result<
                 "Тираж не найден"));
         }
 
+        // Бизнес-проверка 4: Статус тиража (открыты ли продажи)
         if (draw.Status != DrawStatus.Pending)
         {
             return Result<TicketDto>.Failure(new Error(
@@ -83,6 +76,7 @@ public class BuyTicketCommandHandler : IRequestHandler<BuyTicketCommand, Result<
                 "Билеты можно покупать только до начала розыгрыша"));
         }
 
+        // Бизнес-проверка 5: Доступность самой лотереи
         var lottery = await _lotteryRepository.GetByIdAsync(draw.LotteryId, ct);
         if (lottery is null || lottery.IsPaused)
         {
@@ -91,11 +85,13 @@ public class BuyTicketCommandHandler : IRequestHandler<BuyTicketCommand, Result<
                 "Лотерея не найдена или приостановлена"));
         }
 
+        // Нормализуем числа перед проверкой дубликатов и сохранением
         var normalizedNumbers = request.ChosenNumbers
             .Distinct()
             .OrderBy(number => number)
             .ToList();
 
+        // Бизнес-проверка 6: Уникальность комбинации в рамках этого тиража
         var isDuplicate = await _ticketRepository.ExistsWithNumbersAsync(
             request.DrawId,
             normalizedNumbers,
@@ -108,6 +104,7 @@ public class BuyTicketCommandHandler : IRequestHandler<BuyTicketCommand, Result<
                 "Билет с такой комбинацией чисел уже зарегистрирован в этом тираже. Выберите другие числа."));
         }
 
+        // Бизнес-проверка 7: Списание средств
         if (!user.SpendMoney(lottery.TicketPrice))
         {
             return Result<TicketDto>.Failure(new Error(
@@ -115,6 +112,7 @@ public class BuyTicketCommandHandler : IRequestHandler<BuyTicketCommand, Result<
                 "Недостаточно средств на балансе"));
         }
 
+        // Регистрация билета
         var ticket = new Ticket
         {
             OwnerId = user.Id,
@@ -132,9 +130,7 @@ public class BuyTicketCommandHandler : IRequestHandler<BuyTicketCommand, Result<
         return Result<TicketDto>.Success(dto);
     }
 
-    private static List<TicketNumber> CreateTicketNumbers(
-        Lottery lottery,
-        List<int> normalizedNumbers)
+    private static List<TicketNumber> CreateTicketNumbers(Lottery lottery, List<int> normalizedNumbers)
     {
         return lottery switch
         {
@@ -157,12 +153,9 @@ public class BuyTicketCommandHandler : IRequestHandler<BuyTicketCommand, Result<
             .ToList();
     }
 
-    private static List<TicketNumber> CreateBingoTicketNumbers(
-        BingoLottery lottery,
-        List<int> numbers)
+    private static List<TicketNumber> CreateBingoTicketNumbers(BingoLottery lottery, List<int> numbers)
     {
         var ticketNumbers = new List<TicketNumber>();
-
         var index = 0;
 
         for (var row = 1; row <= lottery.Rows; row++)
@@ -176,7 +169,6 @@ public class BuyTicketCommandHandler : IRequestHandler<BuyTicketCommand, Result<
                     Row = row,
                     Column = column
                 });
-
                 index++;
             }
         }

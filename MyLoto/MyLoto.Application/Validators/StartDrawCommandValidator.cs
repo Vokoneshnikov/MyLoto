@@ -1,15 +1,14 @@
 ﻿using FluentValidation;
 using MyLoto.Application.Commands.Draws;
 
-namespace MyLoto.Application.Validators.Commands
+namespace MyLoto.Application.Validators;
+
+public class StartDrawCommandValidator : AbstractValidator<StartDrawCommand>
 {
-    public class StartDrawCommandValidator : AbstractValidator<StartDrawCommand>
+    public StartDrawCommandValidator()
     {
-        public StartDrawCommandValidator()
-        {
-            RuleFor(x => x.DrawId)
-                .GreaterThan(0)
-                .WithMessage("Id тиража должен быть больше нуля.");
-        }
+        RuleFor(x => x.DrawId)
+            .GreaterThan(0)
+            .WithMessage("Id тиража должен быть больше нуля.");
     }
 }

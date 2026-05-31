@@ -1,5 +1,4 @@
-﻿using FluentValidation;
-using MediatR;
+﻿using MediatR;
 using Microsoft.Extensions.Configuration;
 using MyLoto.Application.Abstractions;
 using MyLoto.Application.Abstractions.Contexts;
@@ -13,18 +12,15 @@ namespace MyLoto.Application.Commands.Users;
 public class DepositMoneyCommandHandler : IRequestHandler<DepositMoneyCommand, Result<string>>
 {
     private readonly IUserRepository _userRepository;
-    private readonly IValidator<DepositMoneyCommand> _validator;
     private readonly IUserContext _userContext;
     private readonly string _stripeSecretKey;
 
     public DepositMoneyCommandHandler(
         IUserRepository userRepository,
-        IValidator<DepositMoneyCommand> validator,
         IUserContext userContext,
-        IConfiguration configuration) // Берем ключ из конфига
+        IConfiguration configuration)
     {
         _userRepository = userRepository;
-        _validator = validator;
         _userContext = userContext;
         _stripeSecretKey = configuration["Stripe:SecretKey"] 
                            ?? throw new ArgumentNullException("Stripe Secret Key is missing");
@@ -35,23 +31,15 @@ public class DepositMoneyCommandHandler : IRequestHandler<DepositMoneyCommand, R
     public async Task<Result<string>> Handle(DepositMoneyCommand request, CancellationToken ct)
     {
         var userId = _userContext.UserId;
-        
-        // 1. Валидация
-        var validationResult = await _validator.ValidateAsync(request, ct);
-        if (!validationResult.IsValid)
-        {
-            var firstError = validationResult.Errors.First();
-            return Result<string>.Failure(new Error(firstError.PropertyName, firstError.ErrorMessage)); 
-        }
 
-        // 2. Проверка существования пользователя
+        // 1. Проверка существования пользователя
         var user = await _userRepository.GetByIdAsync(userId, ct);
         if (user == null)
         {
             return Result<string>.Failure(new Error("User.NotFound", "Пользователь не найден"));
         }
 
-        // 3. Создание сессии Stripe
+        // 2. Создание сессии Stripe
         var options = new SessionCreateOptions
         {
             PaymentMethodTypes = new List<string> { "card" },
@@ -75,7 +63,7 @@ public class DepositMoneyCommandHandler : IRequestHandler<DepositMoneyCommand, R
             Mode = "payment",
             SuccessUrl = request.SuccessUrl,
             CancelUrl = request.CancelUrl,
-            // ВАЖНО: передаем UserId в Metadata, чтобы Webhook понял, кому начислять деньги
+            // Передаем UserId в Metadata, чтобы Webhook понимал, кому зачислять средства
             Metadata = new Dictionary<string, string>
             {
                 { "UserId", userId.ToString() }
@@ -87,9 +75,7 @@ public class DepositMoneyCommandHandler : IRequestHandler<DepositMoneyCommand, R
         {
             Session session = await service.CreateAsync(options, cancellationToken: ct);
             
-            // Мы НЕ вызываем SaveChangesAsync и НЕ меняем баланс здесь.
-            // Ждем сигнала от вебхука.
-            
+            // Баланс не меняем — ждем вебхука от Stripe
             return Result<string>.Success(session.Url);
         }
         catch (StripeException ex)

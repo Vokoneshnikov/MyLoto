@@ -1,9 +1,7 @@
 ﻿using AutoMapper;
-using FluentValidation;
 using MediatR;
 using MyLoto.Application.Abstractions.Repositories;
 using MyLoto.Application.Common;
-using MyLoto.Application.Queries.Draws;
 
 namespace MyLoto.Application.Queries.Draws;
 
@@ -11,27 +9,20 @@ public class GetDrawByIdQueryHandler : IRequestHandler<GetDrawByIdQuery, Result<
 {
     private readonly IDrawRepository _drawRepository;
     private readonly IMapper _mapper;
-    private readonly IValidator<GetDrawByIdQuery> _validator; // Добавляем валидатор
 
-    public GetDrawByIdQueryHandler(IDrawRepository drawRepository, IMapper mapper, IValidator<GetDrawByIdQuery> validator)
+    // ЧИСТОТА: Убрали валидатор из конструктора
+    public GetDrawByIdQueryHandler(IDrawRepository drawRepository, IMapper mapper)
     {
         _drawRepository = drawRepository;
         _mapper = mapper;
-        _validator = validator;
     }
 
     public async Task<Result<DrawDto>> Handle(GetDrawByIdQuery request, CancellationToken ct)
     {
-        // Валидируем запрос
-        var validationResult = await _validator.ValidateAsync(request, ct);
-        if (!validationResult.IsValid)
-        {
-            var firstError = validationResult.Errors.First();
-            return Result<DrawDto>.Failure(new Error(firstError.PropertyName, firstError.ErrorMessage));
-        }
-
+        // Запрос уйдет в базу только если DrawId прошел валидацию конвейера (> 0)
         var draw = await _drawRepository.GetByIdAsync(request.DrawId, ct);
 
+        // Проверка существования — это бизнес-правило, оставляем в хандлере
         if (draw is null)
             return Result<DrawDto>.Failure(new Error("Draw.NotFound", "Тираж не найден"));
 

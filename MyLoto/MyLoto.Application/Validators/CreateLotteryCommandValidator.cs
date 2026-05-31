@@ -43,19 +43,16 @@ public class CreateLotteryCommandValidator : AbstractValidator<CreateLotteryComm
         });
 
         // 3. Валидация PrizeTiers с доступом к родительскому объекту (команде)
-        // Используем перегрузку Must, чтобы иметь доступ и к команде (root), и к правилу (tier)
         RuleForEach(x => x.PrizeTiers).Must((command, tier) =>
         {
             if (command.Type == LotteryType.K_Out_Of_N)
             {
-                // Для K из N проверяем, что условие не больше K
                 return tier.RuleType == PrizeTierRuleType.MatchedNumbers && 
                        tier.ConditionValue <= (command.K ?? 0);
             }
 
             if (command.Type == LotteryType.Bingo)
             {
-                // Для Бинго проверяем, что условие не больше MaxBallValue
                 return (tier.RuleType == PrizeTierRuleType.ClosedAtBall || tier.RuleType == PrizeTierRuleType.Jackpot) && 
                        tier.ConditionValue <= (command.MaxBallValue ?? 0);
             }

@@ -1,16 +1,16 @@
 ﻿using FluentValidation;
-using MyLoto.Application.Abstractions.Repositories;
 using MyLoto.Application.Commands.Tickets;
 
-namespace MyLoto.Application.Validators.Tickets;
+namespace MyLoto.Application.Validators;
 
 public class GiftTicketCommandValidator : AbstractValidator<GiftTicketCommand>
 {
-    public GiftTicketCommandValidator(IUserRepository userRepository)
+    public GiftTicketCommandValidator()
     {
         RuleFor(x => x.RecipientLogin)
-            .NotEmpty().WithMessage("Логин получателя не может быть пустым")
-            .MustAsync(async (login, ct) => await userRepository.IsLoginUniqueAsync(login, ct))
-            .WithMessage("Пользователь с таким логином не существует");
+            .NotEmpty().WithMessage("Логин получателя не может быть пустым");
+            
+        RuleFor(x => x.TicketId)
+            .GreaterThan(0).WithMessage("Идентификатор билета должен быть больше 0");
     }
 }

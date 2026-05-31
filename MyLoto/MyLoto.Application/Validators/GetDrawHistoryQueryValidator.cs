@@ -1,6 +1,5 @@
 ﻿using FluentValidation;
 using MyLoto.Application.Queries.Draws;
-
 namespace MyLoto.Application.Validators;
 
 public class GetDrawHistoryQueryValidator : AbstractValidator<GetDrawHistoryQuery>

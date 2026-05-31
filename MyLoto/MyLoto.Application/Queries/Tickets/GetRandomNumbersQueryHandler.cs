@@ -20,7 +20,7 @@ public class GetRandomNumbersQueryHandler : IRequestHandler<GetRandomNumbersQuer
 
     public async Task<Result<List<int>>> Handle(GetRandomNumbersQuery request, CancellationToken ct)
     {
-        // 1. Получаем тираж
+        // 1. Получаем тираж (сюда дойдут только запросы с DrawId > 0)
         var draw = await _drawRepository.GetByIdAsync(request.DrawId, ct);
         if (draw == null) 
             return Result<List<int>>.Failure(new Error("Draw.NotFound", "Тираж не найден"));
@@ -30,7 +30,7 @@ public class GetRandomNumbersQueryHandler : IRequestHandler<GetRandomNumbersQuer
         if (lottery == null) 
             return Result<List<int>>.Failure(new Error("Lottery.NotFound", "Лотерея не найдена"));
 
-        // 3. Используем вынесенную логику генератора
+        // 3. Используем логику генератора случайных чисел под конкретный тип лотереи
         try
         {
             var numbers = LotteryGenerator.GenerateNumbers(lottery);

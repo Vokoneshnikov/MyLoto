@@ -16,18 +16,19 @@ public class GetDrawLiveStatusQueryHandler : IRequestHandler<GetDrawLiveStatusQu
 
     public async Task<Result<DrawLiveStatusResponse>> Handle(GetDrawLiveStatusQuery request, CancellationToken ct)
     {
+        // До репозитория дойдут только валидные запросы с DrawId > 0
         var draw = await _drawRepository.GetDrawForBroadcastAsync(request.DrawId, ct);
         if (draw == null) 
             return Result<DrawLiveStatusResponse>.Failure(new Error("Draw.NotFound", "Тираж не найден"));
 
-        // 1. Если тираж в ожидании, чисел еще нет
+        // 1. Если тираж в ожидании — массив чисел пуст
         if (draw.Status == DrawStatus.Pending)
         {
             return Result<DrawLiveStatusResponse>.Success(
                 new DrawLiveStatusResponse("Pending", new List<int>()));
         }
 
-        // 2. Если тираж завершен, отдаем абсолютно все числа
+        // 2. Если тираж завершен — отдаем всю сгенерированную последовательность чисел
         if (draw.Status == DrawStatus.Completed)
         {
             var allNumbers = draw.WinningNumbers
@@ -39,11 +40,11 @@ public class GetDrawLiveStatusQueryHandler : IRequestHandler<GetDrawLiveStatusQu
                 new DrawLiveStatusResponse("Completed", allNumbers));
         }
 
-        // 3. Если тираж в процессе (InProgress) — считаем срез строго от фактического старта
+        // 3. Если тираж в процессе (InProgress) — рассчитываем временной срез для фронтенда
         var startTime = draw.UpdatedAt ?? DateTime.UtcNow;
         var totalSecondsElapsed = (DateTime.UtcNow - startTime).TotalSeconds;
         
-        // Сколько бочонков успело улететь в эфир (каждые 4 секунды)
+        // Магическое число 4: эмулируем выпадение одного бочонка/шара каждые 4 секунды
         int ballsDroppedCount = Math.Max(0, (int)Math.Floor(totalSecondsElapsed / 4) + 1);
 
         var alreadyDrawnNumbers = draw.WinningNumbers

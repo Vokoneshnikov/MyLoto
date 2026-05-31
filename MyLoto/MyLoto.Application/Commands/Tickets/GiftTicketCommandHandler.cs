@@ -2,8 +2,9 @@
 using MyLoto.Application.Abstractions;
 using MyLoto.Application.Abstractions.Contexts;
 using MyLoto.Application.Abstractions.Repositories;
-using MyLoto.Application.Commands.Tickets;
 using MyLoto.Application.Common;
+
+namespace MyLoto.Application.Commands.Tickets;
 
 public class GiftTicketCommandHandler : IRequestHandler<GiftTicketCommand, Result<bool>>
 {
@@ -31,22 +32,28 @@ public class GiftTicketCommandHandler : IRequestHandler<GiftTicketCommand, Resul
         if (ticket == null) 
             return Result<bool>.Failure(new Error("Ticket.NotFound", "Билет не найден"));
 
-        // 2. Проверяем, что даритель — действительно владелец
+        // 2. Проверяем, что даритель — действительно текущий владелец билета
         if (ticket.OwnerId != _userContext.UserId)
             return Result<bool>.Failure(new Error("Ticket.AccessDenied", "Вы не можете подарить чужой билет"));
 
-        // 3. Проверяем, что билет еще "свежий"
-        // (Тут можно добавить логику проверки DrawStatus через репозиторий тиражей)
-
-        // 4. Ищем счастливчика
+        // 3. Ищем счастливчика (совмещаем проверку существования и получение данных)
         var recipient = await _userRepository.GetByLoginAsync(request.RecipientLogin, ct);
         if (recipient == null)
-            return Result<bool>.Failure(new Error("Recipient.NotFound", $"Пользователь {request.RecipientLogin} не найден"));
+        {
+            return Result<bool>.Failure(new Error(
+                "Recipient.NotFound", 
+                $"Пользователь с логином '{request.RecipientLogin}' не найден"));
+        }
 
+        // 4. Проверяем нарциссизм :)
         if (recipient.Id == _userContext.UserId)
-            return Result<bool>.Failure(new Error("Gift.Self", "Подарить билет самому себе — это просто оставить его в кармане :)"));
+        {
+            return Result<bool>.Failure(new Error(
+                "Gift.Self", 
+                "Подарить билет самому себе — это просто оставить его в своем кармане :)"));
+        }
 
-        // 5. Переписываем владельца
+        // 5. Переписываем владельца билета
         ticket.OwnerId = recipient.Id;
 
         await _unitOfWork.SaveChangesAsync(ct);

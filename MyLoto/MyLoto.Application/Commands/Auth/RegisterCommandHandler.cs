@@ -1,5 +1,4 @@
-﻿using FluentValidation;
-using MediatR;
+﻿using MediatR;
 using MyLoto.Application.Abstractions;
 using MyLoto.Application.Abstractions.Repositories;
 using MyLoto.Application.Common;
@@ -11,37 +10,27 @@ public class RegisterCommandHandler : IRequestHandler<RegisterCommand, Result>
 {
     private readonly IUserRepository _userRepository;
     private readonly IUnitOfWork _unitOfWork;
-    private readonly IValidator<RegisterCommand> _validator;
 
-    public RegisterCommandHandler(
-        IUserRepository userRepository, 
-        IUnitOfWork unitOfWork,
-        IValidator<RegisterCommand> validator)
+    // ЧИСТОТА: Убрали валидатор из зависимостей
+    public RegisterCommandHandler(IUserRepository userRepository, IUnitOfWork unitOfWork)
     {
         _userRepository = userRepository;
         _unitOfWork = unitOfWork;
-        _validator = validator;
     }
 
     public async Task<Result> Handle(RegisterCommand request, CancellationToken ct)
     {
-        // 1. Проверка валидации
-        var validationResult = await _validator.ValidateAsync(request, ct);
-        if (!validationResult.IsValid)
-        {
-            var firstError = validationResult.Errors.First();
-            return Result.Failure(new Error($"Validation.{firstError.PropertyName}", firstError.ErrorMessage));
-        }
-
-        // 2. Бизнес-логика
+        // 1. Бизнес-чек: проверяем уникальность логина
         var existingUser = await _userRepository.GetByLoginAsync(request.Login);
         if (existingUser != null)
         {
             return Result.Failure(new Error("Auth.DuplicateLogin", "Пользователь с таким логином уже существует"));
         }
 
+        // 2. Хешируем пароль
         var passwordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
 
+        // 3. Создаем сущность
         var user = new User
         {
             Login = request.Login,
@@ -50,7 +39,7 @@ public class RegisterCommandHandler : IRequestHandler<RegisterCommand, Result>
             FirstName = request.FirstName,
             LastName = request.LastName,
             Age = request.Age,
-            Balance = 0
+            Balance = 0 // Новый пользователь всегда начинает с нулевым балансом
         };
 
         await _userRepository.AddAsync(user);

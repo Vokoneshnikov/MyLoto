@@ -1,27 +1,31 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using System.Reflection;
 using FluentValidation;
+using MyLoto.Application.Validators; // Добавь этот асинг, чтобы он увидел наш ValidationBehavior
 
-namespace MyLoto.Application
+namespace MyLoto.Application;
+
+public static class DependencyInjection
 {
-    public static class DependencyInjection
+    public static IServiceCollection AddApplication(this IServiceCollection services)
     {
-        public static IServiceCollection AddApplication(this IServiceCollection services)
+        var assembly = typeof(DependencyInjection).Assembly;
+
+        // 1. Регистрируем AutoMapper
+        services.AddAutoMapper(assembly);
+
+        // 2. Регистрируем MediatR + НАШ ПАЙПЛАЙН ВАЛИДАЦИИ
+        services.AddMediatR(configuration =>
         {
-            // Получаем текущую сборку (проект MyLoto.Application)
-            var assembly = typeof(DependencyInjection).Assembly;
+            configuration.RegisterServicesFromAssembly(assembly);
+            
+            // 🔥 ВЖУХ! Включаем автоматическую валидацию для КАЖДОГО запроса MediatR
+            configuration.AddOpenBehavior(typeof(ValidationBehavior<,>));
+        });
 
-            // 1. Регистрируем AutoMapper (он сам найдет MappingProfile)
-            services.AddAutoMapper(assembly);
+        // 3. Регистрируем все валидаторы из директории Validators
+        services.AddValidatorsFromAssembly(assembly);
 
-            // 2. Регистрируем MediatR (он сам найдет все классы IRequestHandler)
-            services.AddMediatR(configuration =>
-                configuration.RegisterServicesFromAssembly(assembly));
-
-            // 3. Регистрируем все валидаторы из директории Validators
-            services.AddValidatorsFromAssembly(assembly);
-
-            return services;
-        }
+        return services;
     }
 }

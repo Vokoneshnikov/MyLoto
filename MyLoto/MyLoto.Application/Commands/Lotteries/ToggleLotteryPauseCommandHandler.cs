@@ -2,7 +2,7 @@
 using Hangfire;
 using MyLoto.Application.Common;
 using MyLoto.Application.Abstractions.Repositories;
-using MyLoto.Application.Common.BackgroundJobs; // Подключаем твой менеджер джобов
+using MyLoto.Application.Common.BackgroundJobs;
 
 namespace MyLoto.Application.Commands.Lotteries;
 
@@ -21,6 +21,7 @@ public class ToggleLotteryPauseCommandHandler : IRequestHandler<ToggleLotteryPau
 
     public async Task<Result<bool>> Handle(ToggleLotteryPauseCommand request, CancellationToken ct)
     {
+        // До репозитория дойдут только структурно корректные ID лотерей (> 0)
         var lottery = await _lotteryRepository.GetByIdAsync(request.LotteryId, ct);
         
         if (lottery == null)
@@ -28,16 +29,19 @@ public class ToggleLotteryPauseCommandHandler : IRequestHandler<ToggleLotteryPau
             return Result<bool>.Failure(new Error("Lottery.NotFound", "Лотерея не найдена"));
         }
 
+        // Инвертируем текущее состояние паузы
         lottery.IsPaused = !lottery.IsPaused;
         
         await _lotteryRepository.UpdateAsync(lottery, ct);
 
-        // Перезапускаем цикл генерации тиражей, если лотерею сняли с паузы
+        // Бизнес-логика: если лотерею сняли с паузы, немедленно пинаем Hangfire-менеджер,
+        // чтобы он сгенерировал новый активный тираж взамен пропущенных.
         if (!lottery.IsPaused)
         {
             _backgroundJobClient.Enqueue<DrawJobsManager>(x => x.TriggerCreateDraw(lottery.Id));
         }
 
+        // Возвращаем новое состояние флага паузы (true/false)
         return Result<bool>.Success(lottery.IsPaused);
     }
 }

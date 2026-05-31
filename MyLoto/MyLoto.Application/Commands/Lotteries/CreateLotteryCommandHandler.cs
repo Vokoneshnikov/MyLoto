@@ -1,5 +1,4 @@
-﻿using FluentValidation;
-using Hangfire;
+﻿using Hangfire;
 using MediatR;
 using MyLoto.Application.Abstractions;
 using MyLoto.Application.Abstractions.Repositories;
@@ -14,29 +13,21 @@ public class CreateLotteryCommandHandler : IRequestHandler<CreateLotteryCommand,
 {
     private readonly ILotteryRepository _lotteryRepository;
     private readonly IUnitOfWork _unitOfWork;
-    private readonly IValidator<CreateLotteryCommand> _validator;
     private readonly IBackgroundJobClient _backgroundJobClient;
 
     public CreateLotteryCommandHandler(
         ILotteryRepository lotteryRepository,
         IUnitOfWork unitOfWork,
-        IValidator<CreateLotteryCommand> validator,
         IBackgroundJobClient backgroundJobClient)
     {
         _lotteryRepository = lotteryRepository;
         _unitOfWork = unitOfWork;
-        _validator = validator;
         _backgroundJobClient = backgroundJobClient;
     }
 
     public async Task<Result<long>> Handle(CreateLotteryCommand request, CancellationToken ct)
     {
-        var validationResult = await _validator.ValidateAsync(request, ct);
-        if (!validationResult.IsValid)
-        {
-            return Result<long>.Failure(new Error("Validation.Error", validationResult.Errors.First().ErrorMessage)); 
-        }
-
+        // Фабричный метод выбора типа лотереи
         Lottery lottery = request.Type switch
         {
             LotteryType.K_Out_Of_N => CreateKOutOfN(request),
@@ -44,7 +35,7 @@ public class CreateLotteryCommandHandler : IRequestHandler<CreateLotteryCommand,
             _ => throw new NotImplementedException()
         };
 
-        // Мапим DTO на сущности PrizeTier
+        // Маппинг DTO на сущности PrizeTier
         lottery.PrizeTiers = request.PrizeTiers.Select(dto => new PrizeTier
         {
             RuleType = dto.RuleType,
@@ -56,7 +47,7 @@ public class CreateLotteryCommandHandler : IRequestHandler<CreateLotteryCommand,
         await _unitOfWork.SaveChangesAsync(ct);
 
         // --- ИНТЕГРАЦИЯ С HANGFIRE ---
-        // Если лотерея создается не на паузе, запускаем цикл создания тиражей
+        // Если лотерея создается не на паузе, запускаем цикл генерации тиражей
         if (!lottery.IsPaused)
         {
             _backgroundJobClient.Enqueue<DrawJobsManager>(x => x.TriggerCreateDraw(lottery.Id));

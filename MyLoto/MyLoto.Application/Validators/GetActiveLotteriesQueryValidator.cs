@@ -1,13 +1,12 @@
 ﻿using FluentValidation;
 using MyLoto.Application.Queries.Lotteries;
 
-namespace MyLoto.Application.Validators.Lotteries
+namespace MyLoto.Application.Validators;
+
+public class GetActiveLotteriesQueryValidator : AbstractValidator<GetActiveLotteriesQuery>
 {
-    public class GetActiveLotteriesQueryValidator : AbstractValidator<GetActiveLotteriesQuery>
+    public GetActiveLotteriesQueryValidator()
     {
-        public GetActiveLotteriesQueryValidator()
-        {
-            // Здесь можно добавить дополнительные проверки, если они нужны
-        }
+        // Дополнительные проверки не требуются
     }
 }

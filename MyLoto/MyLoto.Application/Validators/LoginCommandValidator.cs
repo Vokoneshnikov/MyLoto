@@ -1,6 +1,5 @@
 ﻿using FluentValidation;
 using MyLoto.Application.Commands.Auth;
-
 namespace MyLoto.Application.Validators;
 
 public class LoginCommandValidator : AbstractValidator<LoginCommand>

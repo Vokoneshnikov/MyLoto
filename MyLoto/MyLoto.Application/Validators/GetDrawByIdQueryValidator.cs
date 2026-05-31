@@ -1,14 +1,13 @@
 ﻿using FluentValidation;
 using MyLoto.Application.Queries.Draws;
 
-namespace MyLoto.Application.Validators.Draws
+namespace MyLoto.Application.Validators;
+
+public class GetDrawByIdQueryValidator : AbstractValidator<GetDrawByIdQuery>
 {
-    public class GetDrawByIdQueryValidator : AbstractValidator<GetDrawByIdQuery>
+    public GetDrawByIdQueryValidator()
     {
-        public GetDrawByIdQueryValidator()
-        {
-            RuleFor(x => x.DrawId)
-                .GreaterThan(0).WithMessage("DrawId должен быть больше 0");
-        }
+        RuleFor(x => x.DrawId)
+            .GreaterThan(0).WithMessage("DrawId должен быть больше 0");
     }
 }

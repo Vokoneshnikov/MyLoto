@@ -1,5 +1,4 @@
-﻿using FluentValidation;
-using MediatR;
+﻿using MediatR;
 using MyLoto.Application.Abstractions.Contexts;
 using MyLoto.Application.Abstractions.Repositories;
 using MyLoto.Application.Common;
@@ -10,16 +9,14 @@ public class GetUserTicketsQueryHandler
     : IRequestHandler<GetUserTicketsQuery, Result<IReadOnlyList<UserTicketDto>>>
 {
     private readonly ITicketRepository _ticketRepository;
-    private readonly IValidator<GetUserTicketsQuery> _validator;
     private readonly IUserContext _userContext;
 
+    // ЧИСТОТА: Больше никакого IValidator в конструкторе!
     public GetUserTicketsQueryHandler(
         ITicketRepository ticketRepository, 
-        IValidator<GetUserTicketsQuery> validator,
         IUserContext userContext)
     {
         _ticketRepository = ticketRepository;
-        _validator = validator;
         _userContext = userContext;
     }
 
@@ -27,19 +24,11 @@ public class GetUserTicketsQueryHandler
         GetUserTicketsQuery request, 
         CancellationToken cancellationToken)
     {
-        // 1. Валидация входных параметров
-        var validationResult = await _validator.ValidateAsync(request, cancellationToken);
-        if (!validationResult.IsValid)
-        {
-            var firstError = validationResult.Errors.First();
-            return Result<IReadOnlyList<UserTicketDto>>.Failure(
-                new Error(firstError.PropertyName, firstError.ErrorMessage));
-        }
-
-        // 2. Безопасное получение ID из контекста авторизации
+        // Контекст авторизации: забираем ID текущего пользователя
         var userId = _userContext.UserId;
 
-        // 3. Запрос к репозиторию, который сразу вернет готовые DTO
+        // Запрос к репозиторию, который сразу вернет отфильтрованные DTO.
+        // Сюда мы гарантированно зайдем с валидной комбинацией флагов IsArchive и IsWon.
         var dtos = await _ticketRepository.GetFilteredTicketsDtoAsync(
             userId, 
             request.IsArchive, 

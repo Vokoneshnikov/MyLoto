@@ -26,17 +26,19 @@ public class CompleteDrawCommandHandler : IRequestHandler<CompleteDrawCommand, R
 
     public async Task<Result<Unit>> Handle(CompleteDrawCommand request, CancellationToken ct)
     {
+        // Благодаря Pipeline Behavior сюда гарантированно прилетит DrawId > 0
         var draw = await _drawRepository.GetByIdAsync(request.DrawId, ct);
         if (draw == null) return Result<Unit>.Failure(new Error("Draw.NotFound", "Тираж не найден"));
 
-        // Тираж полностью завершен
+        // Переводим тираж в финальное состояние
         draw.Status = DrawStatus.Completed;
 
         await _unitOfWork.SaveChangesAsync(ct);
 
-        // Замыкаем цикл: проверяем лотерею и ставим задачу на создание нового тиража
+        // Автоматизация: проверяем статус родительской лотереи
         var lottery = await _lotteryRepository.GetByIdAsync(draw.LotteryId, ct);
         
+        // Если лотерея активна, ставим в очередь Hangfire задачу на генерацию следующего тиража
         if (lottery != null && !lottery.IsPaused)
         {
             BackgroundJob.Enqueue<DrawJobsManager>(x => x.TriggerCreateDraw(lottery.Id));

@@ -2,7 +2,6 @@
 using MyLoto.Application.Abstractions;
 using MyLoto.Application.Abstractions.Repositories;
 using MyLoto.Application.Common;
-using FluentValidation;
 using Hangfire;
 using MyLoto.Application.Common.BackgroundJobs;
 using MyLoto.Domain.Entities;
@@ -15,31 +14,21 @@ public class CreateDrawCommandHandler : IRequestHandler<CreateDrawCommand, Resul
     private readonly ILotteryRepository _lotteryRepository;
     private readonly IRepository<Draw> _drawRepository;
     private readonly IUnitOfWork _unitOfWork;
-    private readonly IValidator<CreateDrawCommand> _validator;
 
+    // ЧИСТОТА: Убрали валидатор из конструктора
     public CreateDrawCommandHandler(
         ILotteryRepository lotteryRepository, 
         IRepository<Draw> drawRepository, 
-        IUnitOfWork unitOfWork,
-        IValidator<CreateDrawCommand> validator)
+        IUnitOfWork unitOfWork)
     {
         _lotteryRepository = lotteryRepository;
         _drawRepository = drawRepository;
         _unitOfWork = unitOfWork;
-        _validator = validator;
     }
 
     public async Task<Result<long>> Handle(CreateDrawCommand request, CancellationToken ct)
     {
-        // Валидируем команду
-        var validationResult = await _validator.ValidateAsync(request, ct);
-        if (!validationResult.IsValid)
-        {
-            var firstError = validationResult.Errors.First();
-            return Result<long>.Failure(new Error(firstError.PropertyName, firstError.ErrorMessage));
-        }
-
-        // 1. Проверяем, существует ли лотерея
+        // 1. Проверяем, существует ли лотерея (бизнес-логика, оставляем здесь)
         var lottery = await _lotteryRepository.GetByIdAsync(request.LotteryId, ct);
         if (lottery == null)
             return Result<long>.Failure(new Error("Lottery.NotFound", "Лотерея не найдена"));
@@ -47,7 +36,7 @@ public class CreateDrawCommandHandler : IRequestHandler<CreateDrawCommand, Resul
         if (lottery.IsPaused)
             return Result<long>.Failure(new Error("Lottery.Paused", "Создание тиражей приостановлено"));
         
-        // 2. Создаем сущность Draw согласно твоей модели
+        // 2. Создаем сущность Draw
         var scheduledStartTime = DateTime.UtcNow.Add(lottery.TicketSalesDuration);
         
         var draw = new Draw
@@ -60,13 +49,11 @@ public class CreateDrawCommandHandler : IRequestHandler<CreateDrawCommand, Resul
             Tickets = new List<Ticket>()
         };
 
-        // 3. Используем AddAsync с правильным токеном ct
+        // 3. Сохранение в репозиторий
         await _drawRepository.AddAsync(draw, ct);
-
-        // 4. Сохраняем изменения
         await _unitOfWork.SaveChangesAsync(ct);
         
-        // 5. Планируем запуск тиража в Hangfire
+        // 4. Планируем запуск тиража в Hangfire
         BackgroundJob.Schedule<DrawJobsManager>(
             x => x.TriggerStartDraw(draw.Id), 
             scheduledStartTime);

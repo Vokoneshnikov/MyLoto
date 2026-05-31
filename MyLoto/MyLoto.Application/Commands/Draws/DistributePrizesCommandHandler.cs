@@ -22,17 +22,19 @@ public class DistributePrizesCommandHandler : IRequestHandler<DistributePrizesCo
 
     public async Task<Result<Unit>> Handle(DistributePrizesCommand request, CancellationToken ct)
     {
+        // До репозитория доберутся только валидные ID (> 0)
         var draw = await _drawRepository.GetByIdAsync(request.DrawId, ct);
         if (draw == null) return Result<Unit>.Failure(new Error("Draw.NotFound", "Тираж не найден"));
 
+        // Выбираем билеты, которым алгоритм розыгрыша уже насчитал WinAmount
         var winningTickets = draw.Tickets.Where(t => t.WinAmount > 0).ToList();
 
         foreach (var ticket in winningTickets)
         {
-            // Начисляем деньги пользователю
+            // Начисляем выигрыш на баланс пользователя (доменная логика)
             ticket.Owner.DepositMoney(ticket.WinAmount);
 
-            // Создаем транзакцию (используем string.Format для обхода ошибки интерполяции)
+            // Формируем финансовую транзакцию для истории и аудита
             var transaction = new Transaction
             {
                 UserId = ticket.OwnerId,
@@ -48,9 +50,10 @@ public class DistributePrizesCommandHandler : IRequestHandler<DistributePrizesCo
             ticket.Owner.Transactions.Add(transaction);
         }
 
+        // Фиксируем все начисления и транзакции в рамках единой UoW-сессии
         await _unitOfWork.SaveChangesAsync(ct);
 
-        // Переходим к финализации тиража
+        // Передаем эстафету следующему шагу — финальному закрытию тиража
         return await _mediator.Send(new CompleteDrawCommand(draw.Id), ct);
     }
 }

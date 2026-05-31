@@ -6,26 +6,27 @@
 
     <div v-else-if="ticket" class="row justify-content-center">
       <div class="col-md-8 col-lg-6">
-        <!-- Кнопка Назад -->
         <div class="mb-4">
           <router-link to="/profile" class="btn btn-link text-decoration-none p-0 text-dark">
             <i class="bi bi-arrow-left me-2"></i> Вернуться в профиль
           </router-link>
         </div>
 
-        <!-- Карточка билета -->
         <div class="card border-0 shadow-lg rounded-4 overflow-hidden ticket-card">
-          <div class="card-header bg-primary text-white p-4 border-0 position-relative">
+          <div class="card-header p-4 border-0 position-relative"
+               :class="!ticket.isChecked ? 'bg-primary text-white' : (ticket.winAmount > 0 ? 'bg-success text-white' : 'bg-secondary text-white')">
             <div class="d-flex justify-content-between align-items-center">
               <div>
                 <h6 class="text-white-50 text-uppercase small fw-bold mb-1">Лотерейный билет</h6>
                 <h3 class="fw-bold mb-0">#{{ ticket.ticketId }}</h3>
               </div>
               <div class="text-end">
-                <span class="badge bg-white text-primary rounded-pill px-3 py-2">Активен</span>
+                <span class="badge bg-white rounded-pill px-3 py-2"
+                      :class="!ticket.isChecked ? 'text-primary' : (ticket.winAmount > 0 ? 'text-success' : 'text-secondary')">
+                  {{ !ticket.isChecked ? 'В игре' : (ticket.winAmount > 0 ? 'Выиграл' : 'Без выигрыша') }}
+                </span>
               </div>
             </div>
-            <!-- Декоративные круги по бокам (перфорация) -->
             <div class="ticket-cutout left"></div>
             <div class="ticket-cutout right"></div>
           </div>
@@ -34,8 +35,11 @@
             <div class="mb-5 text-center">
               <h5 class="text-muted mb-3">Ваша комбинация:</h5>
               <div class="d-flex flex-wrap justify-content-center gap-2">
-                <div v-for="num in ticket.chosenNumbers" :key="num"
-                     class="lotto-ball shadow-sm">
+                <div v-for="num in ticket.selectedNumbers" :key="num"
+                     :class="[
+                       'lotto-ball shadow-sm transition-all',
+                       ticket.drawWinningNumbers.includes(num) ? 'matched text-white border-success' : ''
+                     ]">
                   {{ num }}
                 </div>
               </div>
@@ -44,15 +48,17 @@
             <div class="row g-4 mb-4">
               <div class="col-6">
                 <label class="text-muted small d-block mb-1">Тираж</label>
-                <span class="fw-bold d-block">{{ ticket.lotteryName }}</span>
+                <span class="fw-bold d-block">№ {{ ticket.drawId }}</span>
               </div>
               <div class="col-6 text-end">
-                <label class="text-muted small d-block mb-1">Дата покупки</label>
-                <span class="fw-bold d-block">{{ formatDate(ticket.purchasedAt) }}</span>
+                <label class="text-muted small d-block mb-1">Статус розыгрыша</label>
+                <span class="fw-bold d-block text-capitalize">{{ ticket.drawStatus }}</span>
               </div>
               <div class="col-6">
-                <label class="text-muted small d-block mb-1">Стоимость</label>
-                <span class="fw-bold d-block text-success">{{ ticket.price || 100 }} ₽</span>
+                <label class="text-muted small d-block mb-1">Сумма выигрыша</label>
+                <span class="fw-bold d-block" :class="ticket.winAmount > 0 ? 'text-success' : 'text-dark'">
+                  {{ ticket.winAmount.toLocaleString() }} ₽
+                </span>
               </div>
               <div class="col-6 text-end">
                 <label class="text-muted small d-block mb-1">ID Транзакции</label>
@@ -67,7 +73,7 @@
                 <i class="bi bi-printer me-2"></i> Распечатать билет
               </button>
               <button class="btn btn-primary rounded-pill">
-                <i class="bi bi-share me-2"></i> Поделиться в соцсетях
+                <i class="bi bi-share me-2"></i> Поделиться результатами
               </button>
             </div>
           </div>
@@ -81,7 +87,8 @@
 
     <div v-else class="text-center py-5">
       <h3>Билет не найден</h3>
-      <router-link to="/profile" class="btn btn-primary mt-3">Вернуться</router-link>
+      <p class="text-muted small">Не удалось найти билет с #{{ $route.params.id }} в вашей истории.</p>
+      <router-link to="/profile" class="btn btn-primary mt-3 rounded-pill px-4">Вернуться в профиль</router-link>
     </div>
   </div>
 </template>
@@ -95,22 +102,25 @@ const route = useRoute();
 const ticket = ref(null);
 const loading = ref(true);
 
-const formatDate = (dateString) => {
-  if (!dateString) return 'Неизвестно';
-  return new Date(dateString).toLocaleDateString('ru-RU', {
-    day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit'
-  });
-};
-
 onMounted(async () => {
   try {
     const id = route.params.id;
-    // Предполагаем, что у тебя есть эндпоинт для получения одного билета
-    // Если его нет, можно отфильтровать из общего списка профиля
-    const allTickets = await apiRequest('/profile/tickets');
+
+    // 🔥 ИСПРАВЛЕНО: Так как эндпоинт требует параметры, запрашиваем параллельно активные и архивные билеты
+    const [activeTickets, archiveTickets] = await Promise.all([
+      apiRequest('/profile/tickets?isArchive=false'),
+      apiRequest('/profile/tickets?isArchive=true')
+    ]);
+
+    // Объединяем оба списка в один пул для поиска
+    const allTickets = [...activeTickets, ...archiveTickets];
+
+    // 🔥 ИСПРАВЛЕНО: Ищем билет по новому свойству ticketId (из нашей DTO рекорда)
     ticket.value = allTickets.find(t => t.ticketId == id);
+
+    console.log("Найденный билет для детализации:", ticket.value);
   } catch (e) {
-    console.error("Ошибка загрузки билета:", e);
+    console.error("Ошибка загрузки деталей билета:", e);
   } finally {
     loading.value = false;
   }
@@ -134,16 +144,25 @@ onMounted(async () => {
   color: #0d6efd;
 }
 
+/* Стиль для совпавшего победного бочонка */
+.lotto-ball.matched {
+  background: radial-gradient(circle at 30% 30%, #198754, #146c43);
+  border-color: #198754;
+  color: white !important;
+  transform: scale(1.05);
+}
+
 .ticket-cutout {
   position: absolute;
   bottom: -15px;
   width: 30px;
   height: 30px;
-  background: #f8f9fa; /* Должен совпадать с цветом фона страницы */
+  background: #ffffff; /* Если фон страницы изменится, поменяй цвет тут */
   border-radius: 50%;
 }
 .ticket-cutout.left { left: -15px; }
 .ticket-cutout.right { right: -15px; }
 
 .border-dashed { border-style: dashed !important; }
+.transition-all { transition: all 0.2s ease-in-out; }
 </style>

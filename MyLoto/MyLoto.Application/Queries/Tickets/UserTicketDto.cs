@@ -1,12 +1,11 @@
 ﻿namespace MyLoto.Application.Queries.Tickets;
 
-public class UserTicketDto
-{
-    public long TicketId { get; init; }
-    public long DrawId { get; init; }
-    public string LotteryName { get; init; } = string.Empty;
-    public List<int> ChosenNumbers { get; init; } = [];
-    public bool IsChecked { get; init; }
-    public decimal WinAmount { get; init; }
-    public DateTime PurchasedAt { get; init; }
-}
+public record UserTicketDto(
+    long TicketId,
+    long DrawId,
+    List<int> SelectedNumbers,    // Числа, выбранные игроком
+    bool IsChecked,
+    decimal WinAmount,
+    string DrawStatus,             // Статус тиража (Pending, InProgress, Completed)
+    List<int> DrawWinningNumbers    // Выигрышные числа для красивой подсветки совпадений
+);

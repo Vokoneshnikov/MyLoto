@@ -58,11 +58,11 @@ public static class UserEndpoints
         .AllowAnonymous()       // 1. Пропускает запрос без JWT/Cookie
         .DisableAntiforgery();;
         
-        group.MapGet("/tickets", async (ISender mediator) =>
+        group.MapGet("/tickets", async (bool isArchive, bool? isWon, ISender mediator) =>
             {
-                var query = new GetUserTicketsQuery();
+                var query = new GetUserTicketsQuery(isArchive, isWon);
                 var result = await mediator.Send(query);
-            
+    
                 return result.ToProcessResult();
             })
             .WithName("GetUserTickets");

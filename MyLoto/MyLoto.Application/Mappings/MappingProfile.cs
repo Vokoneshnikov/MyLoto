@@ -50,19 +50,6 @@ public class MappingProfile : Profile
             // Вычисляем статус выигрыша на лету
             .ForMember(dest => dest.IsWinning, opt => opt.MapFrom(src => src.WinAmount > 0));
         
-        // CreateMap<Ticket, UserTicketDto>()
-        //     // Мапим ID билета
-        //     .ForMember(dest => dest.TicketId, opt => opt.MapFrom(src => src.Id))
-        //     // Достаем название лотереи через цепочку Draw -> Lottery
-        //     .ForMember(dest => dest.LotteryName, opt => opt.MapFrom(src => src.Draw.Lottery.Name))
-        //     // Превращаем коллекцию сущностей TicketNumber в простой список цифр
-        //     .ForMember(dest => dest.SelectedNumbers, opt => opt.MapFrom(src => 
-        //         src.SelectedNumbers.Select(sn => sn.Number).ToList()))
-        //     // Определяем, проверен ли билет (например, по наличию даты проверки или статусу)
-        //     .ForMember(dest => dest.IsChecked, opt => opt.MapFrom(src => src.IsChecked))
-        //     // Дата покупки обычно берется из базовой сущности (CreatedAt)
-        //     .ForMember(dest => dest.PurchasedAt, opt => opt.MapFrom(src => src.CreatedAt));
-        
         CreateMap<User, UserProfileDto>()
             .ForMember(dest => dest.TotalTicketsCount, opt => opt.MapFrom(src => src.OwnedTickets.Count))
             .ForMember(dest => dest.JoinedAt, opt => opt.MapFrom(src => src.CreatedAt));

@@ -4,7 +4,7 @@ using MyLoto.Application.Abstractions.Repositories;
 using MyLoto.Application.Common;
 using MyLoto.Domain.Enums;
 using Hangfire;
-using MyLoto.Application.Common.BackgroundJobs;
+using MyLoto.Application.Abstractions.Common.BackgroundJobs;
 
 namespace MyLoto.Application.Commands.Draws;
 

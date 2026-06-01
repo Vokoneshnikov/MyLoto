@@ -10,33 +10,32 @@
           <div class="card-body p-4 p-md-5">
             <label class="form-label small fw-bold text-muted text-uppercase">Выберите сумму</label>
 
-            <!-- Пресеты сумм -->
             <div class="d-flex flex-wrap gap-2 mb-4">
               <button
                 v-for="amount in presets"
                 :key="amount"
-                @click="selectedAmount = amount"
+                @click="selectPreset(amount)"
                 :class="['btn rounded-3 flex-grow-1 py-2 fw-bold', selectedAmount === amount ? 'btn-primary' : 'btn-outline-primary']"
               >
                 {{ amount }} ₽
               </button>
             </div>
 
-            <!-- Поле ввода -->
             <div class="mb-4">
               <label class="form-label small fw-bold text-muted text-uppercase">Или введите свою</label>
-              <div class="input-group input-group-lg">
-                <span class="input-group-text bg-white border-end-0 text-muted">₽</span>
+              <div class="input-group input-group-lg has-validation">
+                <span :class="['input-group-text bg-white border-end-0 text-muted', errors.amount ? 'border-danger' : '']">₽</span>
                 <input
                   v-model.number="selectedAmount"
                   type="number"
-                  class="form-control border-start-0 ps-0"
+                  :class="['form-control border-start-0 ps-0', errors.amount ? 'is-invalid' : '']"
                   placeholder="0.00"
+                  @input="clearError"
                 >
+                <div v-if="errors.amount" class="invalid-feedback d-block">{{ errors.amount }}</div>
               </div>
             </div>
 
-            <!-- Заглушка методов оплаты -->
             <div class="mb-4">
               <label class="form-label small fw-bold text-muted text-uppercase mb-3">Способ оплаты</label>
               <div class="list-group">
@@ -59,7 +58,7 @@
 
             <button
               @click="handleDeposit"
-              :disabled="!selectedAmount || selectedAmount <= 0 || loading"
+              :disabled="loading"
               class="btn btn-dark btn-lg w-100 rounded-pill fw-bold py-3 mt-2 shadow"
             >
               <span v-if="loading" class="spinner-border spinner-border-sm me-2"></span>
@@ -81,41 +80,91 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, reactive } from 'vue';
 import { useRouter } from 'vue-router';
 import { apiRequest } from '@/api/client';
+import Swal from 'sweetalert2';
 
 const router = useRouter();
 const loading = ref(false);
 const selectedAmount = ref(500);
 const presets = [100, 500, 1000, 5000];
 
+// Локальный стейт ошибок
+const errors = reactive({
+  amount: ''
+});
+
+const selectPreset = (amount) => {
+  selectedAmount.value = amount;
+  errors.amount = '';
+};
+
+const clearError = () => {
+  errors.amount = '';
+};
+
+// Финансовый валидатор
+const validateForm = () => {
+  errors.amount = '';
+  const amt = selectedAmount.value;
+
+  if (amt === '' || amt === null || amt === undefined) {
+    errors.amount = 'Укажите сумму пополнения';
+    return false;
+  }
+  if (isNaN(amt) || amt <= 0) {
+    errors.amount = 'Сумма должна быть строго больше нуля';
+    return false;
+  }
+  if (amt < 50) {
+    errors.amount = 'Минимальная сумма пополнения — 50 ₽ (ограничение Stripe)';
+    return false;
+  }
+  if (amt > 150000) {
+    errors.amount = 'Максимальная сумма разового пополнения — 150 000 ₽';
+    return false;
+  }
+
+  // Проверка на "копеечный спам": не более 2 знаков после запятой
+  if (amt.toString().includes('.')) {
+    const decimalPlaces = amt.toString().split('.')[1].length;
+    if (decimalPlaces > 2) {
+      errors.amount = 'Сумма не может содержать более 2 знаков после запятой';
+      return false;
+    }
+  }
+
+  return true;
+};
+
 const handleDeposit = async () => {
+  if (!validateForm()) return; // Защитный гвард
+
   loading.value = true;
   try {
-    // 1. Формируем URL возврата (текущий адрес сайта)
     const baseUrl = window.location.origin;
 
-    // 2. Отправляем все необходимые данные
     const response = await apiRequest('/profile/deposit', 'POST', {
       Amount: selectedAmount.value,
-      SuccessUrl: `${baseUrl}/profile?payment=success`, // Куда вернуться при успехе
-      CancelUrl: `${baseUrl}/profile/deposit`          // Куда вернуться при отмене
+      SuccessUrl: `${baseUrl}/profile?payment=success`,
+      CancelUrl: `${baseUrl}/profile/deposit`
     });
 
-    // 3. Важно: Бэкенд теперь возвращает URL сессии Stripe
-    // Если в apiRequest ты возвращаешь чистое тело ответа:
+    // Редирект на защищенный шлюз Stripe
     if (response && response.url) {
-      // Перенаправляем пользователя на страницу оплаты Stripe
       window.location.href = response.url;
     } else {
-      // Если бэкенд возвращает строку напрямую (зависит от твоего ToProcessResult)
       window.location.href = response;
     }
 
   } catch (e) {
     console.error(e);
-    alert("Ошибка пополнения: " + e.message);
+    Swal.fire({
+      icon: 'error',
+      title: 'Ошибка платежной сессии',
+      text: e.message || 'Не удалось связаться со Stripe. Попробуйте позже.'
+    });
   } finally {
     loading.value = false;
   }
@@ -127,4 +176,9 @@ const handleDeposit = async () => {
 .rounded-4 { border-radius: 1.25rem !important; }
 .input-group-text { border-radius: 0.75rem 0 0 0.75rem !important; }
 .form-control { border-radius: 0 0.75rem 0.75rem 0 !important; }
+
+/* Красивая подсветка левой иконки при ошибке */
+.border-danger {
+  border-color: #dc3545 !important;
+}
 </style>

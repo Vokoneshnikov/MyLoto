@@ -1,8 +1,8 @@
 ﻿using MediatR;
 using Hangfire;
+using MyLoto.Application.Abstractions.Common.BackgroundJobs;
 using MyLoto.Application.Common;
 using MyLoto.Application.Abstractions.Repositories;
-using MyLoto.Application.Common.BackgroundJobs;
 
 namespace MyLoto.Application.Commands.Lotteries;
 

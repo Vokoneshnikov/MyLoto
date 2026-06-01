@@ -13,11 +13,9 @@ public class User : BaseEntity
     public decimal Balance { get; set; }
     public UserRole Role { get; set; } = UserRole.User;
 
-    // Навигационные свойства
     public ICollection<Ticket> OwnedTickets { get; set; } = new List<Ticket>();
     public ICollection<Transaction> Transactions { get; set; } = new List<Transaction>();
 
-    // Добавляем навигационное свойство для связи с UserExtraInfo
     public UserExtraInfo ExtraInfo { get; set; } = null!;
     
     public bool SpendMoney(decimal amount)
@@ -38,10 +36,8 @@ public class User : BaseEntity
     {
         if (amount <= 0) return;
 
-        // 1. Обновляем баланс
         Balance += amount;
 
-        // 2. Создаем транзакцию и добавляем её в коллекцию
         var transaction = new Transaction
         {
             UserId = this.Id,
@@ -49,7 +45,7 @@ public class User : BaseEntity
             Type = TransactionType.Deposit,
             ExternalTransactionId = externalId,
             Description = description,
-            CreatedAt = DateTime.UtcNow // Хотя в BaseEntity есть значение по умолчанию
+            CreatedAt = DateTime.UtcNow
         };
 
         Transactions.Add(transaction);

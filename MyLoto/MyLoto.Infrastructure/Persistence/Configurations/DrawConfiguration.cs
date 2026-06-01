@@ -2,6 +2,8 @@
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using MyLoto.Domain.Entities;
 
+namespace MyLoto.Infrastructure.Persistence.Configurations;
+
 public class DrawConfiguration : IEntityTypeConfiguration<Draw>
 {
     public void Configure(EntityTypeBuilder<Draw> builder)
@@ -10,7 +12,6 @@ public class DrawConfiguration : IEntityTypeConfiguration<Draw>
         builder.Property(d => d.Status).HasConversion<string>();
         builder.Property(d => d.TotalSalesAmount).HasPrecision(18, 2);
 
-        // Настраиваем связь 1:N с таблицей выигрышных чисел
         builder.HasMany(d => d.WinningNumbers)
             .WithOne(wn => wn.Draw)
             .HasForeignKey(wn => wn.DrawId)

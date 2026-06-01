@@ -1,9 +1,9 @@
 ﻿using Hangfire;
 using MediatR;
 using MyLoto.Application.Abstractions;
+using MyLoto.Application.Abstractions.Common.BackgroundJobs;
 using MyLoto.Application.Abstractions.Repositories;
 using MyLoto.Application.Common;
-using MyLoto.Application.Common.BackgroundJobs;
 using MyLoto.Domain.Entities;
 using MyLoto.Domain.Enums;
 

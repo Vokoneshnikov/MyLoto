@@ -1,6 +1,5 @@
 ﻿namespace MyLoto.Domain.Exceptions;
 
-// Недостаточно средств
 public class InsufficientFundsException : DomainException
 {
     public InsufficientFundsException(decimal currentBalance, decimal requiredAmount) 

@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Http;
 using MyLoto.Application.Abstractions;
 using MyLoto.Application.Abstractions.Contexts;
 
-namespace MyLoto.WebAPI.Services;
+namespace MyLoto.Infrastructure.Services;
 
 public class UserContext : IUserContext
 {

@@ -10,6 +10,7 @@ using MyLoto.Application.Mappings;
 using MyLoto.Infrastructure;
 using MyLoto.Infrastructure.Auth;
 using MyLoto.Infrastructure.Persistence;
+using MyLoto.Infrastructure.Services;
 using MyLoto.WebAPI.Endpoints;
 using MyLoto.WebAPI.Hubs;          // Добавлено для Хаба
 using MyLoto.WebAPI.Middlewares;
@@ -35,6 +36,11 @@ try
 
     builder.Services.AddAuthorization();
     builder.Services.AddEndpointsApiExplorer();
+    
+    builder.Services.Configure<Microsoft.AspNetCore.Http.Json.JsonOptions>(options =>
+    {
+        options.SerializerOptions.Converters.Add(new XssSanitizationConverter());
+    });
     
     builder.Services.AddSwaggerGen(options =>
     {

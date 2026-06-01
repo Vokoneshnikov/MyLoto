@@ -2,18 +2,21 @@
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using MyLoto.Domain.Entities;
 
-public class TransactionConfiguration : IEntityTypeConfiguration<Transaction>
+namespace MyLoto.Infrastructure.Persistence.Configurations
 {
-    public void Configure(EntityTypeBuilder<Transaction> builder)
+    public class TransactionConfiguration : IEntityTypeConfiguration<Transaction>
     {
-        builder.HasKey(t => t.Id);
-        builder.Property(t => t.Amount).HasPrecision(18, 2);
-        builder.Property(t => t.Type).HasConversion<string>();
-        builder.Property(t => t.Description).HasMaxLength(500);
+        public void Configure(EntityTypeBuilder<Transaction> builder)
+        {
+            builder.HasKey(t => t.Id);
+            builder.Property(t => t.Amount).HasPrecision(18, 2);
+            builder.Property(t => t.Type).HasConversion<string>();
+            builder.Property(t => t.Description).HasMaxLength(500);
 
-        builder.HasOne(t => t.User)
-            .WithMany(u => u.Transactions)
-            .HasForeignKey(t => t.UserId)
-            .OnDelete(DeleteBehavior.Restrict);
+            builder.HasOne(t => t.User)
+                .WithMany(u => u.Transactions)
+                .HasForeignKey(t => t.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
+        }
     }
 }

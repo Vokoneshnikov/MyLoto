@@ -1,6 +1,5 @@
 ﻿namespace MyLoto.Domain.Exceptions;
 
-// Нарушение лимитов транзакции
 public class InvalidTransactionAmountException : DomainException
 {
     public InvalidTransactionAmountException(decimal amount, decimal min, decimal max) 

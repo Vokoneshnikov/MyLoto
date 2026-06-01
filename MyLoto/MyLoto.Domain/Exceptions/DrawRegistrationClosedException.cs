@@ -1,6 +1,5 @@
 ﻿namespace MyLoto.Domain.Exceptions;
 
-// Попытка купить билет в начавшемся тираже
 public class DrawRegistrationClosedException : DomainException
 {
     public DrawRegistrationClosedException(long drawId, string status) 

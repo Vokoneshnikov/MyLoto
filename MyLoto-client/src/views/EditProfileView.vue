@@ -19,22 +19,24 @@
                   <input
                     v-model="form.Name"
                     type="text"
-                    class="form-control form-control-lg rounded-3"
+                    :class="['form-control form-control-lg rounded-3', errors.Name ? 'is-invalid' : '']"
                     placeholder="Введите имя"
-                    required
+                    @input="errors.Name = ''"
                   >
+                  <div v-if="errors.Name" class="invalid-feedback">{{ errors.Name }}</div>
                 </div>
 
-                <!-- Фамилия -->
+                <!-- 	Фамилия -->
                 <div class="col-md-6">
                   <label class="form-label small fw-bold text-muted">Фамилия</label>
                   <input
                     v-model="form.Surname"
                     type="text"
-                    class="form-control form-control-lg rounded-3"
+                    :class="['form-control form-control-lg rounded-3', errors.Surname ? 'is-invalid' : '']"
                     placeholder="Введите фамилию"
-                    required
+                    @input="errors.Surname = ''"
                   >
+                  <div v-if="errors.Surname" class="invalid-feedback">{{ errors.Surname }}</div>
                 </div>
 
                 <!-- Адрес (Address) -->
@@ -72,7 +74,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, reactive, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { apiRequest } from '@/api/client';
 
@@ -83,6 +85,12 @@ const form = ref({
   Name: '',
   Surname: '',
   Address: ''
+});
+
+// Локальный стейт для отслеживания ошибок валидации
+const errors = reactive({
+  Name: '',
+  Surname: ''
 });
 
 // Загружаем текущие данные, чтобы пользователь видел, что редактирует
@@ -100,7 +108,28 @@ onMounted(async () => {
   }
 });
 
+// Функция валидации, синхронизированная с требованиями доменной модели бэка
+const validateForm = () => {
+  let isValid = true;
+  errors.Name = '';
+  errors.Surname = '';
+
+  if (!form.value.Name.trim()) {
+    errors.Name = 'Имя обязательно для заполнения';
+    isValid = false;
+  }
+
+  if (!form.value.Surname.trim()) {
+    errors.Surname = 'Фамилия обязательна для заполнения';
+    isValid = false;
+  }
+
+  return isValid;
+};
+
 const handleUpdate = async () => {
+  if (!validateForm()) return; // Отсекаем пустые отправки на взлете
+
   saving.value = true;
   try {
     // Отправляем PUT запрос на обновление

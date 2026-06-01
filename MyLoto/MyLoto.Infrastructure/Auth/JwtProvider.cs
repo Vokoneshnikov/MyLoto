@@ -2,7 +2,6 @@
 using System.Security.Claims;
 using System.Text;
 using Microsoft.Extensions.Configuration;
-// using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Tokens;
 using MyLoto.Application.Abstractions;
 using MyLoto.Domain.Entities;
@@ -20,7 +19,6 @@ public class JwtProvider : IJwtProvider
 
     public string GenerateToken(User user)
     {
-        // 1. Извлекаем настройки из appsettings.json
         var secretKey = _configuration["JwtSettings:Secret"];
         var issuer = _configuration["JwtSettings:Issuer"];
         var audience = _configuration["JwtSettings:Audience"];
@@ -29,12 +27,9 @@ public class JwtProvider : IJwtProvider
         if (string.IsNullOrEmpty(secretKey))
             throw new InvalidOperationException("JWT Secret key is not configured.");
 
-        // 2. Создаем ключ подписи
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
-        // 3. Формируем Claims (полезную нагрузку токена)
-        // Мы упаковываем ID, почту, логин и роль, чтобы фронтенд мог их прочитать без запроса к БД
         var claims = new List<Claim>
         {
             new(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
@@ -44,7 +39,6 @@ public class JwtProvider : IJwtProvider
             new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()) // Уникальный ID токена
         };
 
-        // 4. Генерируем сам токен
         var token = new JwtSecurityToken(
             issuer: issuer,
             audience: audience,

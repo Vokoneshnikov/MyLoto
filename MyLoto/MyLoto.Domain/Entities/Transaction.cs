@@ -8,9 +8,9 @@ public class Transaction : BaseEntity
     public User User { get; init; } = null!;
     
     public decimal Amount { get; init; }
-    public TransactionType Type { get; init; } // Deposit, Withdraw, Purchase, Win
+    public TransactionType Type { get; init; }
     
-    public long? TicketId { get; init; } // Для покупок и выигрышей
-    public string? ExternalTransactionId { get; init; } // ID из Stripe
+    public long? TicketId { get; init; }
+    public string? ExternalTransactionId { get; init; }
     public string Description { get; init; } = null!;
 }

@@ -1,6 +1,5 @@
 ﻿namespace MyLoto.Domain.Exceptions;
 
-// Попытка подарить самому себе
 public class SelfGiftingException : DomainException
 {
     public SelfGiftingException() 

@@ -20,13 +20,7 @@ public abstract class Lottery : BaseEntity
 
     public ICollection<PrizeTier> PrizeTiers { get; set; } = new List<PrizeTier>();
     
-    /// <summary>
-    /// Сколько времени длится продажа билетов (Например, 45 минут).
-    /// </summary>
     public TimeSpan TicketSalesDuration { get; set; } 
-
-    /// <summary>
-    /// Сколько времени идет сам розыгрыш (Например, 15 минут).
-    /// </summary>
+    
     public TimeSpan DrawProcessingDuration { get; set; }
 }

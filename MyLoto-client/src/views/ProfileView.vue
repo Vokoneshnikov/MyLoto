@@ -171,12 +171,19 @@
             <p class="text-muted small mb-4">Введите логин счастливчика, которому вы хотите передать этот билет. После этого билет исчезнет из вашего профиля.</p>
             <div class="mb-3">
               <label class="form-label small fw-bold">Логин получателя</label>
-              <input v-model="recipientLogin" type="text" class="form-control rounded-3" placeholder="Например: lucky_friend">
+              <input
+                v-model="recipientLogin"
+                type="text"
+                :class="['form-control rounded-3', recipientError ? 'is-invalid' : '']"
+                placeholder="Например: lucky_friend"
+                @input="recipientError = ''"
+              >
+              <div v-if="recipientError" class="invalid-feedback">{{ recipientError }}</div>
             </div>
           </div>
           <div class="modal-footer border-0">
             <button @click="closeModal" class="btn btn-light rounded-pill px-4">Отмена</button>
-            <button @click="handleGift" :disabled="!recipientLogin || gifting" class="btn btn-primary rounded-pill px-4">
+            <button @click="handleGift" :disabled="gifting" class="btn btn-primary rounded-pill px-4">
               <span v-if="gifting" class="spinner-border spinner-border-sm me-2"></span>
               Отправить подарок
             </button>
@@ -194,20 +201,18 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { apiRequest } from '@/api/client';
+import Swal from 'sweetalert2'; // Подключаем красоту
 
-// Данные авторизованного профиля
 const profile = ref(null);
-
-// Параметры реактивной фильтрации билетов (Синхронизировано с бэкенд-валидатором!)
 const tickets = ref([]);
-const isArchive = ref(false);      // false = Активные, true = Архив
-const isWon = ref(null);          // null = все, true = выиграли, false = проиграли
+const isArchive = ref(false);
+const isWon = ref(null);
 const loadingTickets = ref(false);
 
-// Состояние модального окна подарка
 const showModal = ref(false);
 const selectedTicket = ref(null);
 const recipientLogin = ref('');
+const recipientError = ref(''); // Стейт под ошибку валидации инпута
 const gifting = ref(false);
 
 const formatDate = (dateString) => {
@@ -215,7 +220,6 @@ const formatDate = (dateString) => {
   return new Date(dateString).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
 };
 
-// Загрузка основной информации профиля
 const fetchProfile = async () => {
   try {
     profile.value = await apiRequest('/profile/');
@@ -224,18 +228,13 @@ const fetchProfile = async () => {
   }
 };
 
-// Динамическая загрузка билетов с учетом выбранных фильтров
 const fetchTickets = async () => {
   loadingTickets.value = true;
   try {
-    // Формируем строку запроса к нашему обновленному Minimal API эндпоинту
     let queryPath = `/profile/tickets?isArchive=${isArchive.value}`;
-
-    // Добавляем фильтр выигрыша только в том случае, если мы находимся во вкладке Архива
     if (isArchive.value && isWon.value !== null) {
       queryPath += `&isWon=${isWon.value}`;
     }
-
     tickets.value = await apiRequest(queryPath);
   } catch (e) {
     console.error("Ошибка фильтрации билетов:", e.message);
@@ -244,15 +243,12 @@ const fetchTickets = async () => {
   }
 };
 
-// Переключение между вкладками Активные / Архив
 const changeTab = (archiveState) => {
   isArchive.value = archiveState;
-  // Сбрасываем суб-фильтры выигрыша при смене глобальной вкладки, чтобы не нарушать правила валидатора
   isWon.value = null;
   fetchTickets();
 };
 
-// Смена фильтра выиграл/проиграл внутри архивной вкладки
 const changeArchiveFilter = (wonState) => {
   isWon.value = wonState;
   fetchTickets();
@@ -267,24 +263,64 @@ const closeModal = () => {
   showModal.value = false;
   selectedTicket.value = null;
   recipientLogin.value = '';
+  recipientError.value = '';
+};
+
+// Функция валидации получателя подарка
+const validateGiftForm = () => {
+  recipientError.value = '';
+  const login = recipientLogin.value.trim();
+
+  if (!login) {
+    recipientError.value = 'Введите логин пользователя';
+    return false;
+  }
+
+  // Бизнес-правило: нельзя дарить самому себе
+  if (profile.value && login.toLowerCase() === profile.value.login.toLowerCase()) {
+    recipientError.value = 'Вы не можете подарить билет самому себе';
+    return false;
+  }
+
+  // Защита от спецсимволов/инъекций на фронте
+  const loginRegex = /^[a-zA-Z0-9_]{3,20}$/;
+  if (!loginRegex.test(login)) {
+    recipientError.value = 'Логин должен содержать от 3 до 20 латинских букв, цифр или подчёркиваний';
+    return false;
+  }
+
+  return true;
 };
 
 const handleGift = async () => {
+  if (!validateGiftForm()) return; // Останавливаем отправку, если логин не прошел проверку
+
   gifting.value = true;
   try {
     await apiRequest(`/tickets/gift`, 'POST', {
       ticketId: selectedTicket.value.ticketId,
-      recipientLogin: recipientLogin.value
+      recipientLogin: recipientLogin.value.trim()
     });
 
-    alert(`Билет успешно отправлен пользователю ${recipientLogin.value}!`);
     closeModal();
 
-    // Перезапрашиваем данные, чтобы актуализировать списки
+    // Красивое уведомление об успехе
+    await Swal.fire({
+      icon: 'success',
+      title: 'Билет отправлен!',
+      text: `Билет успешно передан пользователю @${recipientLogin.value}.`,
+      confirmButtonColor: '#0d6efd',
+      timer: 3000
+    });
+
     await fetchProfile();
     await fetchTickets();
   } catch (e) {
-    alert("Ошибка: " + e.message);
+    Swal.fire({
+      icon: 'error',
+      title: 'Ошибка отправки',
+      text: e.message
+    });
   } finally {
     gifting.value = false;
   }
@@ -292,7 +328,7 @@ const handleGift = async () => {
 
 onMounted(() => {
   fetchProfile();
-  fetchTickets(); // Запускаем первичный сбор активных билетов
+  fetchTickets();
 });
 </script>
 
@@ -303,15 +339,8 @@ onMounted(() => {
 .modal-backdrop { z-index: 1040; }
 .modal { z-index: 1050; }
 .transition-all { transition: all 0.2s ease-in-out; }
-
-/* Эффект легкого увеличения для угаданных бочонков */
-.scale-up {
-  transform: scale(1.08);
-}
-
-.animate-fade-in {
-  animation: fadeIn 0.3s ease-in-out;
-}
+.scale-up { transform: scale(1.08); }
+.animate-fade-in { animation: fadeIn 0.3s ease-in-out; }
 
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(-5px); }

@@ -8,10 +8,8 @@ public class WinningNumberConfiguration : IEntityTypeConfiguration<WinningNumber
 {
     public void Configure(EntityTypeBuilder<WinningNumber> builder)
     {
-        // Имя таблицы как на скрипте
         builder.ToTable("DrawWinningNumbers"); 
 
-        // Ключ DrawId + Order (судя по структуре)
         builder.HasKey(wn => new { wn.DrawId, wn.Order });
 
         builder.Property(wn => wn.DrawId)

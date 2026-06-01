@@ -88,16 +88,37 @@ const fetchLotteries = async () => {
 };
 
 const togglePause = async (loto) => {
+  // 1. Защитный барьер: спрашиваем админа, уверен ли он
+  const confirmResult = await Swal.fire({
+    title: loto.isPaused ? 'Возобновить лотерею?' : 'Приостановить лотерею?',
+    text: loto.isPaused
+      ? `Лотерея "${loto.name}" снова станет доступна для покупки билетов и генерации тиражей.`
+      : `Автоматический цикл для "${loto.name}" будет заморожен. Текущие открытые тиражи приостановятся.`,
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonColor: loto.isPaused ? '#198754' : '#dc3545', // Зеленая для старта, красная для стопа
+    cancelButtonColor: '#6c757d',
+    confirmButtonText: loto.isPaused ? '▶ Да, запустить' : '⏸ Да, приостановить',
+    cancelButtonText: 'Отмена'
+  });
+
+  // Если админ нажал "Отмена" — тихо выходим
+  if (!confirmResult.isConfirmed) return;
+
+  // 2. Включаем спиннер на кнопке
   loto.processing = true;
   try {
     const isPausedNow = await apiRequest(`/lotteries/${loto.id}/toggle-pause`, 'POST');
     loto.isPaused = isPausedNow;
 
+    // Динамический текст в зависимости от реального статуса
     Swal.fire({
       icon: 'success',
       title: isPausedNow ? 'Цикл приостановлен' : 'Цикл запущен',
-      text: `Лотерея "${loto.name}" успешно извлечена из ротации генерации тиражей.`,
-      timer: 2000,
+      text: isPausedNow
+        ? `Лотерея "${loto.name}" успешно извлечена из ротации генерации тиражей.`
+        : `Лотерея "${loto.name}" успешно вернулась в активную игру!`,
+      timer: 2500,
       showConfirmButton: false
     });
   } catch (error) {

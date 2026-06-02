@@ -71,7 +71,7 @@
 ## Backend
 
 - ASP.NET Core
-- .NET 6+  
+- .NET 10
 - Minimal API
 - Entity Framework Core
 - PostgreSQL
@@ -158,8 +158,10 @@
 
 ```text
 MyLoto/
-├── MyLoto.Domain/
-├── MyLoto.Application/
-├── MyLoto.Infrastructure/
-├── MyLoto.WebAPI/
-└── frontend/
+├── MyLoto/
+├──── MyLoto.Application/
+├──── MyLoto.Domain/
+├──── MyLoto.Infrastructure/
+├──── MyLoto.WebAPI/
+├── MyLoto-client/
+

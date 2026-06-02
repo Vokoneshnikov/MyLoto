@@ -36,10 +36,37 @@ public class CreateLotteryCommandValidator : AbstractValidator<CreateLotteryComm
 
         When(x => x.Type == LotteryType.Bingo, () =>
         {
-            RuleFor(x => x.Rows).NotNull().GreaterThan(0);
-            RuleFor(x => x.Columns).NotNull().GreaterThan(0);
-            RuleFor(x => x.MaxBallValue).NotNull().GreaterThan(30);
-            RuleFor(x => x.JackpotThreshold).NotNull().GreaterThan(0);
+            RuleFor(x => x.Rows)
+                .NotNull().WithMessage("Количество строк обязательно.")
+                .GreaterThan(0).WithMessage("Количество строк должно быть больше 0.");
+
+            RuleFor(x => x.Columns)
+                .NotNull().WithMessage("Количество столбцов обязательно.")
+                .GreaterThan(0).WithMessage("Количество столбцов должно быть больше 0.");
+
+            RuleFor(x => x.MaxBallValue)
+                .NotNull().WithMessage("Максимальный номер шара обязателен.")
+                .GreaterThan(0).WithMessage("Максимальный номер шара должен быть больше 0.")
+                .Must((command, maxBallValue) =>
+                {
+                    if (maxBallValue is null || command.Rows is null || command.Columns is null)
+                        return true;
+
+                    var ticketNumbersCount = command.Rows.Value * command.Columns.Value;
+
+                    return maxBallValue.Value >= ticketNumbersCount;
+                })
+                .WithMessage(command =>
+                {
+                    var ticketNumbersCount = (command.Rows ?? 0) * (command.Columns ?? 0);
+                    return $"Максимальный номер шара должен быть не меньше количества чисел в билете: {ticketNumbersCount}.";
+                });
+
+            RuleFor(x => x.JackpotThreshold)
+                .NotNull().WithMessage("Порог джекпота обязателен.")
+                .GreaterThan(0).WithMessage("Порог джекпота должен быть больше 0.")
+                .LessThanOrEqualTo(x => x.MaxBallValue ?? 0)
+                .WithMessage("Порог джекпота не может быть больше максимального номера шара.");
         });
 
         // 3. Валидация PrizeTiers с доступом к родительскому объекту (команде)

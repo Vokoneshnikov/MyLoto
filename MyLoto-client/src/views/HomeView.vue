@@ -29,13 +29,13 @@
 
       <div v-for="draw in draws" :key="draw.id" class="col-12 col-md-6 col-lg-4">
         <div class="card h-100 border-0 shadow-sm hover-card rounded-4 overflow-hidden">
-          <div :class="isBingo(draw.lotteryName) ? 'bg-primary' : 'bg-warning'" style="height: 6px;"></div>
+          <div :class="isBingo(draw) ? 'bg-primary' : 'bg-warning'" style="height: 6px;"></div>
 
           <div class="card-body p-4 d-flex flex-column">
             <div class="d-flex justify-content-between align-items-start mb-3">
               <div>
                 <h6 class="text-uppercase text-muted fw-bold small mb-1">
-                  {{ isBingo(draw.lotteryName) ? 'Бинго' : 'Тиражная' }}
+                  {{ isBingo(draw) ? 'Бинго' : 'Тиражная' }}
                 </h6>
                 <h3 class="card-title h4 fw-bold mb-0">{{ draw.lotteryName }}</h3>
               </div>
@@ -46,7 +46,7 @@
             </div>
 
             <div class="rounded-4 p-3 mb-4 text-center"
-                 :class="isBingo(draw.lotteryName) ? 'bg-primary-subtle' : 'bg-warning-subtle'">
+                 :class="isBingo(draw) ? 'bg-primary-subtle' : 'bg-warning-subtle'">
               <span class="d-block small fw-bold text-uppercase opacity-75">Джекпот</span>
               <div class="h2 fw-bold mb-0 text-dark">{{ formatCurrency(draw.jackpot) }}</div>
             </div>
@@ -78,7 +78,9 @@ import { apiRequest } from '@/api/client';
 const draws = ref([]);
 const loading = ref(true);
 
-const isBingo = (name) => name?.toLowerCase().includes('бинго');
+const isBingo = (draw) => {
+  return draw?.lotteryType === 'Bingo' || draw?.type === 'Bingo';
+};
 
 const fetchDraws = async () => {
   try {

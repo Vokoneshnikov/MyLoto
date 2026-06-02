@@ -73,9 +73,16 @@ public class StartDrawCommandHandler : IRequestHandler<StartDrawCommand, Result<
 
     private List<WinningNumber> GenerateKOutOfNWinningNumbers(int maxNumber, int numbersToChoose)
     {
-        var random = new Random();
-        return Enumerable.Range(1, maxNumber)
-            .OrderBy(_ => random.Next())
+        if (numbersToChoose > maxNumber)
+        {
+            throw new InvalidOperationException(
+                $"Нельзя выбрать {numbersToChoose} выигрышных чисел из диапазона 1..{maxNumber}.");
+        }
+
+        var numbers = Enumerable.Range(1, maxNumber).ToList();
+        Shuffle(numbers);
+
+        return numbers
             .Take(numbersToChoose)
             .Select((num, index) => new WinningNumber
             {
@@ -87,15 +94,27 @@ public class StartDrawCommandHandler : IRequestHandler<StartDrawCommand, Result<
 
     private List<WinningNumber> GenerateBingoWinningNumbers(int maxBallValue)
     {
-        var random = new Random();
-        return Enumerable.Range(1, maxBallValue)
-            .OrderBy(_ => random.Next())
-            .Take(90) // Стандартный пул для Бинго/Лото
+        var numbers = Enumerable.Range(1, maxBallValue).ToList();
+        Shuffle(numbers);
+
+        return numbers
             .Select((num, index) => new WinningNumber
             {
                 Number = num,
                 Order = index + 1
             })
             .ToList();
+    }
+
+    private static void Shuffle(List<int> numbers)
+    {
+        var random = Random.Shared;
+
+        for (var i = numbers.Count - 1; i > 0; i--)
+        {
+            var j = random.Next(i + 1);
+
+            (numbers[i], numbers[j]) = (numbers[j], numbers[i]);
+        }
     }
 }

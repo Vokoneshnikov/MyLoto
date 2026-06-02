@@ -39,9 +39,12 @@
               <small class="text-muted d-block text-truncate" style="max-width: 300px;">{{ loto.description }}</small>
             </td>
             <td>
-                <span :class="['badge rounded-pill px-2.5 py-1.5', loto.type === 1 ? 'bg-primary-subtle text-primary' : 'bg-warning-subtle text-warning-dark']">
-                  {{ loto.type === 1 ? '🔢 K из N' : '🎱 Бинго' }}
-                </span>
+  <span :class="[
+    'badge rounded-pill px-2.5 py-1.5',
+    isKOutOfN(loto) ? 'bg-warning-subtle text-warning-dark' : 'bg-primary-subtle text-primary'
+  ]">
+    {{ isKOutOfN(loto) ? '🔢 K из N' : '🎱 Бинго' }}
+  </span>
             </td>
             <td class="fw-semibold">{{ loto.ticketPrice }} ₽</td>
             <td>
@@ -74,6 +77,14 @@ import Swal from 'sweetalert2';
 
 const lotteries = ref([]);
 const loading = ref(true);
+
+const isKOutOfN = (loto) => {
+  return loto?.type === 'K_Out_Of_N' || loto?.type === 1;
+};
+
+const isBingo = (loto) => {
+  return loto?.type === 'Bingo' || loto?.type === 2;
+};
 
 const fetchLotteries = async () => {
   try {

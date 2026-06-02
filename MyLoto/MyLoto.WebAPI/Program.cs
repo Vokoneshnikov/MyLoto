@@ -12,6 +12,7 @@ using MyLoto.Infrastructure.Auth;
 using MyLoto.Infrastructure.Persistence;
 using MyLoto.Infrastructure.Services;
 using MyLoto.WebAPI.Endpoints;
+using System.Reflection;
 using MyLoto.WebAPI.Hubs;          // Добавлено для Хаба
 using MyLoto.WebAPI.Middlewares;
 using MyLoto.WebAPI.Services;      // Добавлено для DrawNotificationService
@@ -19,6 +20,11 @@ using Serilog;
 
 Log.Logger = new LoggerConfiguration()
     .WriteTo.Console()
+    .WriteTo.File(
+        path: "Logs/bootstrap-.log",
+        rollingInterval: RollingInterval.Day,
+        retainedFileCountLimit: 7,
+        encoding: Encoding.UTF8)
     .CreateBootstrapLogger();
 
 try
@@ -31,8 +37,15 @@ try
         .ReadFrom.Configuration(context.Configuration)
         .ReadFrom.Services(services)
         .Enrich.FromLogContext()
-        .WriteTo.Console(outputTemplate: 
-            "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}"));
+        .WriteTo.Console(outputTemplate:
+            "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}")
+        .WriteTo.File(
+            path: "Logs/log-.txt",
+            rollingInterval: RollingInterval.Day,
+            retainedFileCountLimit: 14,
+            encoding: Encoding.UTF8,
+            outputTemplate:
+            "[{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} {Level:u3}] {Message:lj}{NewLine}{Exception}"));
 
     builder.Services.AddAuthorization();
     builder.Services.AddEndpointsApiExplorer();
@@ -44,7 +57,33 @@ try
     
     builder.Services.AddSwaggerGen(options =>
     {
-        options.SwaggerDoc("v1", new OpenApiInfo { Title = "MyLoto API", Version = "v1" });
+        options.SwaggerDoc("v1", new OpenApiInfo
+        {
+            Title = "MyLoto API",
+            Version = "v1",
+            Description =
+                """
+                MyLoto — backend API для платформы онлайн-лотерей.
+
+                Основные возможности:
+                - регистрация и авторизация пользователей;
+                - покупка и подарок билетов;
+                - создание и управление лотереями;
+                - автоматический запуск тиражей через Hangfire;
+                - live-трансляция розыгрышей через SignalR;
+                - пополнение баланса через Stripe;
+                - проверка выигрышей и начисление призов.
+
+                Архитектура проекта: Clean Architecture + CQRS + MediatR.
+                """,
+            Contact = new OpenApiContact
+            {
+                Name = "MyLoto Project",
+                Email = "support@myloto.local"
+            }
+        });
+
+
         options.AddSecurityDefinition(JwtBearerDefaults.AuthenticationScheme, new OpenApiSecurityScheme
         {
             Type = SecuritySchemeType.Http,
@@ -54,6 +93,7 @@ try
             In = ParameterLocation.Header,
             Description = "Введите JWT токен в формате: Bearer {token}"
         });
+
         options.AddSecurityRequirement(document => new OpenApiSecurityRequirement
         {
             [new OpenApiSecuritySchemeReference(

@@ -165,3 +165,107 @@ MyLoto/
 ├──── MyLoto.WebAPI/
 ├── MyLoto-client/
 
+
+## MyLoto.Domain
+
+Содержит доменную модель проекта:
+
+```text
+MyLoto.Domain/
+├── Entities/
+├── Enums/
+└── Exceptions/
+```
+
+В этом слое находятся:
+
+- сущности;
+- enum-типы;
+- доменные исключения.
+
+`Domain` не зависит от базы данных, ASP.NET Core, Stripe, Hangfire или других внешних технологий.
+
+---
+
+## MyLoto.Application
+
+Содержит бизнес-сценарии проекта:
+
+```text
+MyLoto.Application/
+├── Abstractions/
+├── Commands/
+├── Queries/
+├── Validators/
+├── Mappings/
+├── Common/
+├── BackgroundJobs/
+├── DependencyInjection.cs
+└── LotteryGenerator.cs
+```
+
+В этом слое находятся:
+
+- команды;
+- запросы;
+- обработчики;
+- DTO;
+- валидация;
+- абстракции репозиториев;
+- интерфейсы внешних сервисов;
+- бизнес-логика сценариев.
+
+---
+
+## MyLoto.Infrastructure
+
+Содержит реализацию инфраструктуры:
+
+```text
+MyLoto.Infrastructure/
+├── Auth/
+├── Persistence/
+├── Migrations/
+├── Services/
+└── DependencyInjection.cs
+```
+
+В этом слое находятся:
+
+- `DbContext`;
+- EF Core конфигурации;
+- репозитории;
+- `UnitOfWork`;
+- JWT-провайдер;
+- Hangfire;
+- инициализация базы данных.
+
+---
+
+## MyLoto.WebAPI
+
+Содержит API-слой:
+
+```text
+MyLoto.WebAPI/
+├── Endpoints/
+├── Extensions/
+├── Hubs/
+├── Middlewares/
+├── Services/
+└── Program.cs
+```
+
+В этом слое находятся:
+
+- Minimal API endpoints;
+- Swagger;
+- SignalR Hub;
+- middleware обработки ошибок;
+- настройка JWT;
+- настройка CORS;
+- настройка Serilog;
+- настройка security headers.
+
+---
+
